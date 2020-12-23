@@ -11,14 +11,14 @@
     ifthenelse ::= "if" <space> <bexp> <space> "then" <space> (<program> | <program> "else" <space> <program>) "end" <semicolon>
     while ::= "while" <space> <bexp> <space> "do" <space> <program> "end" <semicolon> 
     
-    bexp ::= <bterm> | <bterm> <bexpop> <bexp> | "(" <bexp> ")" | "!" <bexp>
+    bexp ::= <bterm> | <bterm> <bop> <bexp> | "(" <bexp> ")" | "!" <bexp>
     bterm::= <aexp> | <aexp> <comparisonop> <aexp> | <variable> 
-    bexpop ::= "&&" | "||" 
+    bop ::= "&&" | "||" 
     
-    aexp ::= <aterm> | <aterm> <aexpop> <aexp> | "(" <aexp> ")" | "-" <aexp>
+    aexp ::= <aterm> | <aterm> <aop> <aexp> | "(" <aexp> ")" | "-" <aexp>
     aterm = <positivenumber> | <variable>
     positivenumber ::= <digit> <positivenumber> | <positivenumber> "." <positivenumber> | <digit>
-    aexpop ::= "+" | "-" | "*" | "/" 
+    aop ::= "+" | "-" | "*" | "/" 
     digit ::= [0-9]
     
     variable ::= [<letter>]{<letter> | <digit>}
