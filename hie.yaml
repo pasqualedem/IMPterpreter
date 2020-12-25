@@ -1,0 +1,11 @@
+  
+cradle:
+  stack:
+    - path: "./src"
+      component: "IMPterpreter:lib"
+      
+    - path: "./app"
+      component: "IMPterpreter:exe:IMPterpreter-exe"
+
+    - path: "./test"
+      component: "IMPterpreter:test:IMPterpreter-test"
