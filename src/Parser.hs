@@ -1,5 +1,5 @@
 module Parser where
-import Grammar (AExp (..), BExp (..), Command (..), ComparisonOp (..), AOp (..), ATerm (..), Minus (..), BTerm (..), BOp (..), Not (..), Exp (..), Variable (..), Program (..))
+import Grammar (AExp (..), BExp (..), Command (..), ComparisonOp (..), AOp (..), BOp (..), Exp (..), Variable (..), Program (..), ArrDecl (..))
 import Functions
     ( isSpace, isAlphaNum, isAlpha, isUpper, isLower, isDigit )
 
@@ -12,6 +12,11 @@ parse s = case p s of
   Just (c, s) -> (c, s)
   where
     (P p) = program
+
+parseFailed :: (Program, [Char]) -> Bool
+parseFailed (Empty, "") = True
+parseFailed (_, "") = False
+parseFailed (_, _) = False
 
 instance Functor Parser where
   fmap g (P p) =
@@ -56,7 +61,7 @@ instance Alternative Maybe where
     Nothing <|> my = my
     (Just x) <|> _ = Just x
 
-class Applicative f => Alternative f where
+class Monad f => Alternative f where
     empty :: f a
     (<|>) :: f a -> f a -> f a
     many :: f a -> f [a]
@@ -144,13 +149,13 @@ double =
 
 number :: Parser Double
 number = 
-    nat
-    <|>
     double
     <|>
+    nat
+    <|>
     (do
-        num <- number
         char '-'
+        num <- number
         return (- num)
     )
 
@@ -158,34 +163,24 @@ variable :: Parser Variable
 variable =
     do
         ltr <- letter
-        a <- some alphanum
-        return (AlphaVar (ltr : a))
-        
-aterm :: Parser ATerm
-aterm = 
-    (do Number <$> number) <|>
+        ls <- many alphanum
+        do
+            symbol "["
+            a <- aexp
+            symbol "]"
+            return (MemLocation (ltr : ls) a)
+            <|> do 
+            return (Identifier (ltr : ls))
+
+afactor :: Parser AExp
+afactor = 
+    (do Number <$> number) 
+    <|>
     (do AVariable <$> variable)
-
-aop :: Parser AOp
-aop =
-    (do op <- symbol "+"; return Add) <|>
-    (do op <- symbol "-"; return Sub) <|>
-    (do op <- symbol "*"; return Mul) <|>
-    (do op <- symbol "/"; return Div)
-
-aexp :: Parser AExp
-aexp = 
-    (do 
-        t <- aterm
-        op <- aop
-        a <- aexp
-        ATermOp t op <$> aexp
-    )
     <|>
     (do 
-        a <- aexp
-        op <- aop
-        AExpOp a op <$> aexp
+        symbol "-"
+        Negation . AVariable <$> variable
     )
     <|>
     (do
@@ -193,15 +188,46 @@ aexp =
         a <- aexp
         symbol ")"
         return a
-    )
-    <|>
+    )   
+    <|> 
     (do
         symbol "-"
+        symbol "("
         a <- aexp
-        Negation Minus <$> aexp
+        symbol ")"
+        return (Negation a)
     )
-    <|>
-    do ATerm <$> aterm
+
+aterm :: Parser AExp
+aterm = 
+    do
+        f <- afactor
+        do
+            op <- asecondaryop
+            AExpOp f op <$> aterm
+            <|>
+            return f
+
+aprimaryop :: Parser AOp
+aprimaryop =
+    (do op <- symbol "+"; return Add) <|>
+    (do op <- symbol "-"; return Sub)
+
+asecondaryop :: Parser AOp
+asecondaryop =
+    (do op <- symbol "*"; return Mul) <|>
+    (do op <- symbol "/"; return Div)
+
+aexp :: Parser AExp
+aexp = 
+    do 
+        t <- aterm
+        do
+            op <- aprimaryop
+            AExpOp t op <$> aexp
+            <|>
+            return t
+
 
 
 ------ Boolean expression parsing ------
@@ -232,7 +258,17 @@ comparison =
         symbol "!="
         return Neq
 
-bool :: Parser BTerm
+bcomparison :: Parser ComparisonOp
+bcomparison =
+    do
+        symbol "=="
+        return Eq
+    <|> 
+    do
+        symbol "!="
+        return Neq
+
+bool :: Parser BExp
 bool = 
     (do
         s <- symbol "True"
@@ -244,84 +280,77 @@ bool =
         return (Boolean False)
         )
 
-bop :: Parser BOp
-bop = 
-    (do
-        s <- symbol "||"
-        return Or
-        )
+bfactor :: Parser BExp
+bfactor =
+    bool
     <|>
-    (do
-        s <- symbol "&&"
-        return And
-        )
-
-bterm :: Parser BTerm
-bterm =
     (do
         a1 <- aexp
         c <- comparison
         Comparison a1 c <$> aexp
     )
     <|>
-    (do ABExp <$> aexp)
-    <|>
     (do BVariable <$> variable)
+    <|>    
+    (do 
+        symbol "!"
+        Not . BVariable <$> variable
+    )
     <|>
-    bool
-
-bexp :: Parser BExp
-bexp =
+    (do
+        nt <- symbol "!"
+        symbol "("
+        bx <- bexp
+        symbol ")"
+        return (Not bx)   
+    )    
+    <|>
     (do
         symbol "("
         bx <- bexp
         symbol ")"
         return bx
     )
-    <|>
-    (do
+
+bterm :: Parser BExp
+bterm =
+    do
+        bf <- bfactor
+        (do
+            symbol "&&"
+            BExpOp bf And <$> bfactor) 
+            <|>
+            return bf
+
+bexp :: Parser BExp
+bexp =
+    do
         bt <- bterm
-        op <- bop
-        BTermOp bt op <$> bexp
-    )
-    <|>
-    (do
-        bxl <- bexp
-        op <- bop
-        BExpOp bxl op <$> bexp
-    )
-    <|>
-    (do
-        nt <- symbol "!"
-        Inversion Not <$> bexp   
-    )
-    <|>
-    do BTerm <$> bterm
+        (do
+            symbol "||"
+            BExpOp bt Or <$> bexp) 
+            <|>
+            return bt
 
 
 ------ Command expression parsing ------
 
 program :: Parser Program
 program =
-    do Single <$> command
-    <|>
-    (do 
+    do 
         c <- command
-        Program c <$> program
-    )
+        do
+            Sequence c <$> program
+            <|>
+            return (Single c) 
 
 command :: Parser Command
 command =
     skip <|>
+    arraydeclaration <|>
     assignment <|>
     ifthenelse <|>
     while
-
-
-expr :: Parser Exp
-expr = 
-    (do BExp <$> bexp) <|>
-    (do AExp <$> aexp)
     
 skip :: Parser Command
 skip = 
@@ -330,32 +359,85 @@ skip =
         symbol ";"
         return Skip
 
+arrayElements :: Parser [Exp]
+arrayElements =
+    do
+        b <- (do BExp <$> bexp)
+        do
+            symbol ","
+            t <- arrayElements
+            return (b:t)
+            <|>
+            return [b]
+    <|>
+    do
+        a <- (do AExp <$> aexp)
+        do
+            symbol ","
+            t <- arrayElements
+            return (a:t)
+            <|>
+            return [a]
+
+arraydeclaration :: Parser Command
+arraydeclaration = 
+    do
+        v <- variable
+        symbol "="
+        do
+            symbol "Array"
+            symbol "("
+            n <- aexp
+            symbol ")"
+            symbol ";"
+            return (ArrayDeclaration (Intensional v n))
+            <|> do
+                symbol "{"
+                exps <- arrayElements
+                symbol "}"
+                return (ArrayDeclaration (Extensional exps))
+
 assignment :: Parser Command
 assignment = 
     do
         v <- variable
         symbol "="
-        e <- expr
-        symbol ";"
-        Assignment v <$> expr
-
+        do
+            e <- (do BExp <$> bexp)
+            symbol ";"
+            return (Assignment v e)
+            <|> do
+                e <- (do AExp <$> aexp)
+                symbol ";"
+                return (Assignment v e)
+    
 ifthenelse :: Parser Command
 ifthenelse =
     do
         symbol "if"
+        symbol "("
         b <- bexp
+        symbol ")"
         symbol "then"
+        symbol "{"
         pthen <- program
+        symbol "}"
         symbol "else"
+        symbol "{"
         pelse <- program
+        symbol "}"
         symbol ";"
         return (IfThenElse b pthen pelse)
     <|> 
     do
         symbol "if"
+        symbol "("
         b <- bexp
+        symbol ")"
         symbol "then"
+        symbol "{"
         pthen <- program
+        symbol "}"
         symbol ";"
         return (IfThenElse b pthen (Single Skip))
     
@@ -364,14 +446,12 @@ while :: Parser Command
 while = 
     do
         symbol "while"
+        symbol "("
         b <- bexp
+        symbol ")"
         symbol "do"
+        symbol "{"
         p <- program
+        symbol "}"
         symbol ";"
         return (While b p)
-
-
-
-    
-
-    

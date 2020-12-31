@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2990e0100036e869f7cafb7f2f93ad8c84b26e3c87bbde308bfa1d2ee8bece44
+-- hash: 855d1ea86a459d722c1e492f3a252a571f173232730e5af29ab66566a94944e8
 
 name:           IMPterpreter
 version:        0.1.0.0
@@ -30,6 +30,8 @@ library
       Functions
       Grammar
       Interpreter
+      Lib
+      Main
       Parser
   other-modules:
       Paths_IMPterpreter
@@ -37,6 +39,7 @@ library
       src
   build-depends:
       base >=4.7 && <5
+    , split
   default-language: Haskell2010
 
 executable IMPterpreter-exe
@@ -49,6 +52,7 @@ executable IMPterpreter-exe
   build-depends:
       IMPterpreter
     , base >=4.7 && <5
+    , split
   default-language: Haskell2010
 
 test-suite IMPterpreter-test
@@ -62,4 +66,5 @@ test-suite IMPterpreter-test
   build-depends:
       IMPterpreter
     , base >=4.7 && <5
+    , split
   default-language: Haskell2010
