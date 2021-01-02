@@ -4,25 +4,25 @@
 ## Grammar
  
     
-    program := <command> | <command> <program>
-    command ::= <skip> | <assignment> | <ifthenelse> | <while> 
-    skip ::= "skip" <semicolon> 
-    assignment ::= <variable> ":=" (<aexp> | <bexp>) <semicolon>
-    ifthenelse ::= "if" <space> <bexp> <space> "then" <space> (<program> | <program> "else" <space> <program>) "end" <semicolon>
-    while ::= "while" <space> <bexp> <space> "do" <space> <program> "end" <semicolon> 
+    Program := <Command> | <Command> <Program>
+    Command ::= <Skip> | <ArrayDeclaration> | <Assignment> | <IfThenElse> | <While> 
+    Skip ::= "skip" <Semicolon> 
+    Assignment ::= <Variable> ":=" (AExp | BExp) <Semicolon>
+    IfThenElse ::= "if" <Space> <bexp> <Space> "then" <Space> (<Program> | <Program> "else" <Space> <Program>) "end" <Semicolon>
+    While ::= "while" <space> <BExp> <Space> "do" <Space> <Program> "end" <Semicolon> 
     
-    bexp ::= <bterm> | <bterm> <bop> <bexp> | "(" <bexp> ")" | "!" <bexp>
-    bterm::= <aexp> | <aexp> <comparisonop> <aexp> | <variable> 
-    bop ::= "&&" | "||" 
+    BExp ::= <BTerm> | <BTerm> "||" <BExp>
+    BTerm ::= <BFact> | <BTerm> "&&" <BFact>
+    BFact ::= <AExp> <ComparisonOp> <AExp> | <Bool> | <Variable> | "!" <BExp> | "(" <bexp> ")"
     
-    aexp ::= <aterm> | <aterm> <aop> <aexp> | "(" <aexp> ")" | "-" <aexp>
-    aterm = <positivenumber> | <variable>
-    positivenumber ::= <digit> <positivenumber> | <positivenumber> "." <positivenumber> | <digit>
-    aop ::= "+" | "-" | "*" | "/" 
-    digit ::= [0-9]
+    AExp ::= <ATerm> | <ATerm> "+" <AExp> | <ATerm> "-" <AExp>
+    ATerm = <AFactor> | <AFactor> "*" <ATerm> | <AFactor> "/" <ATerm>
+    AFactor = <PositiveNumber> | <Variable> | "(" <AExp> ")" | "-" <AExp>
+    PositiveNumber ::= <Digit> <PositiveNumber> | <PositiveNumber> "." <PositiveNumber> | <Digit>
+    Digit ::= [0-9]
     
-    variable ::= [<letter>]{<letter> | <digit>}
-    comparisonOp ::= "<" | ">" | "=" | "<=" | ">=" | "!=" 
-    letter ::= [a-z]
-    semicolon ::= ";" | ";" <space> 
-    space ::= " "  
+    Variable ::= [<Letter>]{<Letter> | <Letter>}
+    ComparisonOp ::= "<" | ">" | "=" | "<=" | ">=" | "!=" 
+    Letter ::= [a-z]
+    Semicolon ::= ";" | ";" <space> 
+    Spacee ::= " "  
