@@ -1,8 +1,8 @@
 module Main where
 
 import Parser ( parse, parseFailed )
-import Interpreter ( Env, exec, Env, showEnv )
-import Grammar ( Program (..) ) 
+import Evaluator ( Env, exec, Env, showEnv )
+import Tree ( Program (..) ) 
 
 
 menu :: Env -> String -> IO ()

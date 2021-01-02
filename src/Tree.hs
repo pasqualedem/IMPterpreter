@@ -1,4 +1,4 @@
-module Grammar where
+module Tree where
 
 data Type = DoubleType Double | BoolType Bool | ArrayType [Type]
 

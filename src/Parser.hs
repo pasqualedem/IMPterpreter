@@ -1,5 +1,5 @@
 module Parser where
-import Grammar (AExp (..), BExp (..), Command (..), ComparisonOp (..), AOp (..), BOp (..), Exp (..), Variable (..), Program (..), ArrDecl (..))
+import Tree (AExp (..), BExp (..), Command (..), ComparisonOp (..), AOp (..), BOp (..), Exp (..), Variable (..), Program (..), ArrDecl (..))
 import Functions
     ( isSpace, isAlphaNum, isAlpha, isUpper, isLower, isDigit, isIdentifier)
 
@@ -183,11 +183,6 @@ afactor =
     <|>
     (do AVar <$> variable)
     <|>
-    (do 
-        symbol "-"
-        Negation . AVar <$> variable
-    )
-    <|>
     (do
         symbol "("
         a <- aexp
@@ -197,10 +192,7 @@ afactor =
     <|> 
     (do
         symbol "-"
-        symbol "("
-        a <- aexp
-        symbol ")"
-        return (Negation a)
+        Negation  <$> aexp
     )
 
 aterm :: Parser AExp
@@ -263,16 +255,6 @@ comparison =
         symbol "!="
         return Neq
 
-bcomparison :: Parser ComparisonOp
-bcomparison =
-    do
-        symbol "=="
-        return Eq
-    <|> 
-    do
-        symbol "!="
-        return Neq
-
 bool :: Parser BExp
 bool = 
     (do
@@ -296,19 +278,6 @@ bfactor =
     )
     <|>
     (do BVar <$> variable)
-    <|>    
-    (do 
-        symbol "!"
-        Not . BVar <$> variable
-    )
-    <|>
-    (do
-        nt <- symbol "!"
-        symbol "("
-        bx <- bexp
-        symbol ")"
-        return (Not bx)   
-    )    
     <|>
     (do
         symbol "("
@@ -316,6 +285,12 @@ bfactor =
         symbol ")"
         return bx
     )
+    <|>
+    (do
+        symbol "!"
+        Not <$> bexp   
+    )    
+
 
 bterm :: Parser BExp
 bterm =

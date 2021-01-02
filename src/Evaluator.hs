@@ -1,12 +1,12 @@
-module Interpreter where
-import Grammar (AExp (..), BExp (..), Command (..), ComparisonOp (..), AOp (..), BOp (..), Exp (..), Variable (..), Program (..), Type(..), ArrDecl (..))
+module Evaluator where
+import Tree (AExp (..), BExp (..), Command (..), ComparisonOp (..), AOp (..), BOp (..), Exp (..), Variable (..), Program (..), Type(..), ArrDecl (..))
 
 data Variable = Variable{
     name :: String,
     value :: Type
 } deriving Show
 
-type Env = [Interpreter.Variable]
+type Env = [Evaluator.Variable]
 
 -- Dictionary between grammar arithmetic operations and actual operations
 opADict :: Fractional a => AOp -> a -> a -> a
@@ -43,7 +43,7 @@ declareArrayIntensional (DoubleType d)
     | d == 0 = []
     | d > 0  =  DoubleType 0: declareArrayIntensional (DoubleType (d-1))
     
-modifyEnv :: Env -> Interpreter.Variable -> Env
+modifyEnv :: Env -> Evaluator.Variable -> Env
 modifyEnv [] var = [var]
 modifyEnv (x:xs) newVar =
     if name x == name newVar
@@ -76,7 +76,7 @@ makeArray env [exp] = execExpr env exp (:[])
 makeArray env (e:ex) = execExpr env e (\x -> x:makeArray env ex)
 
 -- Get a variable from the Env and return its value
-evalVar :: Env -> Grammar.Variable -> Type
+evalVar :: Env -> Tree.Variable -> Type
 evalVar env (Identifier var) = 
     case getVarValue env var of
         Just (DoubleType v) -> DoubleType v
@@ -90,7 +90,7 @@ evalVar env (MemLocation (Identifier m) a) =
         Nothing -> error "VariableNotDeclared"
 
 -- Get a variable value from the Env and check the type matching
-safeEvalVar :: Env -> Grammar.Variable -> String -> Type
+safeEvalVar :: Env -> Tree.Variable -> String -> Type
 safeEvalVar env var varType = 
     case (evalVar env var, varType) of
         (DoubleType d, "DoubleType") -> DoubleType d
@@ -107,16 +107,16 @@ getBool (BoolType b) = b
 -- Evaluate arithmetic expressions
 evalAExpr :: Env -> AExp -> Maybe Double
 evalAExpr _ (Number x) = Just x
-evalAExpr env (Grammar.AVar (Identifier v)) = Just (getDouble (safeEvalVar env (Identifier v) "DoubleType"))
-evalAExpr env (Grammar.AVar (MemLocation v a)) = Just (getDouble (safeEvalVar env (MemLocation v a) "DoubleType"))
+evalAExpr env (Tree.AVar (Identifier v)) = Just (getDouble (safeEvalVar env (Identifier v) "DoubleType"))
+evalAExpr env (Tree.AVar (MemLocation v a)) = Just (getDouble (safeEvalVar env (MemLocation v a) "DoubleType"))
 evalAExpr env (AExpOp al op ar) = opADict op <$> evalAExpr env al <*> evalAExpr env ar
 evalAExpr env (Negation a) =   (-) <$> Just 0 <*> evalAExpr env a
 
 -- Evaluate boolean expressions
 evalBExpr :: Env -> BExp -> Maybe Bool
 evalBExpr _ (Boolean b) = Just b
-evalBExpr env (Grammar.BVar (Identifier v)) = Just (getBool (safeEvalVar env (Identifier v) "BoolType"))
-evalBExpr env (Grammar.BVar (MemLocation v a)) = Just (getBool (safeEvalVar env (MemLocation v a) "BoolType"))
+evalBExpr env (Tree.BVar (Identifier v)) = Just (getBool (safeEvalVar env (Identifier v) "BoolType"))
+evalBExpr env (Tree.BVar (MemLocation v a)) = Just (getBool (safeEvalVar env (MemLocation v a) "BoolType"))
 evalBExpr env (BExpOp bl op br) = opBDict op <$> evalBExpr env bl <*> evalBExpr env br
 evalBExpr env (Not b) = not <$> evalBExpr env b
 evalBExpr env (Comparison al op ar) = opCDict op <$> evalAExpr env al <*> evalAExpr env ar
@@ -142,21 +142,21 @@ arrayElementAssignment env identifier indexExpr value =
     execExpr env (AExp indexExpr) 
         (\n ->
                 case getVarValue env identifier of
-                    Just (ArrayType var) -> modifyEnv env (Interpreter.Variable identifier (ArrayType (setArrayElement var n value)))
+                    Just (ArrayType var) -> modifyEnv env (Evaluator.Variable identifier (ArrayType (setArrayElement var n value)))
                     Nothing -> error "ArrayNotDeclared"
         )
 
 -- Execute a statement of the program and apply its effects to the enviroment
 execStatement :: Env -> Command -> Env
 execStatement env Skip = env
-execStatement env (Assignment (Identifier v) (AExp a)) =  execExpr env (AExp a) (modifyEnv env . Interpreter.Variable v)
-execStatement env (Assignment (Identifier v) (BExp b)) =  execExpr env (BExp b) (modifyEnv env . Interpreter.Variable v)
-execStatement env (Assignment (Identifier v) (Var w)) =  modifyEnv env  (Interpreter.Variable v (evalVar env w))
+execStatement env (Assignment (Identifier v) (AExp a)) =  execExpr env (AExp a) (modifyEnv env . Evaluator.Variable v)
+execStatement env (Assignment (Identifier v) (BExp b)) =  execExpr env (BExp b) (modifyEnv env . Evaluator.Variable v)
+execStatement env (Assignment (Identifier v) (Var w)) =  modifyEnv env  (Evaluator.Variable v (evalVar env w))
 execStatement env (Assignment (MemLocation (Identifier v) av) (AExp a)) = execExpr env (AExp a) (arrayElementAssignment env v av)
 execStatement env (Assignment (MemLocation (Identifier v) av) (BExp b)) = execExpr env (BExp b) (arrayElementAssignment env v av)
 execStatement env (Assignment (MemLocation (Identifier v) av) (Var w)) = execExpr env (Var w) (arrayElementAssignment env v av)
-execStatement env (ArrayDeclaration (Intensional (Identifier v) a)) = execExpr env (AExp a) (modifyEnv env . Interpreter.Variable v . ArrayType . declareArrayIntensional)
-execStatement env (ArrayDeclaration (Extensional (Identifier v) exps)) = modifyEnv env (Interpreter.Variable v (ArrayType (makeArray env exps)))
+execStatement env (ArrayDeclaration (Intensional (Identifier v) a)) = execExpr env (AExp a) (modifyEnv env . Evaluator.Variable v . ArrayType . declareArrayIntensional)
+execStatement env (ArrayDeclaration (Extensional (Identifier v) exps)) = modifyEnv env (Evaluator.Variable v (ArrayType (makeArray env exps)))
 execStatement env (ArrayDeclaration (Extensional (MemLocation (Identifier v) av) exps)) = arrayElementAssignment env v av  (ArrayType (makeArray env exps))
 
 execStatement env (IfThenElse b pthen pelse) =
