@@ -8,7 +8,7 @@ newtype Parser a = P (String -> Maybe (a, String))
 
 parse :: String -> (Program, String)
 parse s = case p s of
-  Nothing -> (Empty, "")
+  Nothing -> (Empty, s)
   Just (c, s) -> (c, s)
   where
     (P p) = program
@@ -18,40 +18,40 @@ parseFailed (_, "") = False
 parseFailed (_, _) = True
 
 instance Functor Parser where
-  fmap g (P p) =
-    P
-      ( \input -> case p input of
-          Nothing -> Nothing
-          Just (v, out) -> Just (g v, out)
-      )
+    fmap g (P p) =
+        P
+        ( \input -> case p input of
+            Nothing -> Nothing
+            Just (v, out) -> Just (g v, out)
+        )
 
 instance Applicative Parser where
-  pure v = P (\input -> Just (v, input))
-  (P pg) <*> px =
-    P
-      ( \input -> case pg input of
-          Nothing -> Nothing
-          Just (g, out) -> case fmap g px of
-            (P p) -> p out
-      )
+    pure v = P (\input -> Just (v, input))
+    (P pg) <*> px =
+        P
+        ( \input -> case pg input of
+            Nothing -> Nothing
+            Just (g, out) -> case fmap g px of
+                (P p) -> p out
+        )
 
 instance Monad Parser where
-  (P p) >>= f =
-    P
-      ( \input -> case p input of
-          Nothing -> Nothing
-          Just (v, out) -> case f v of
-            (P p) -> p out
-      )
+    (P p) >>= f =
+        P
+        ( \input -> case p input of
+            Nothing -> Nothing
+            Just (v, out) -> case f v of
+                (P p) -> p out
+        )
 
 instance Alternative Parser where
-  empty = P (const Nothing)
-  (P p) <|> (P q) =
-    P
-      ( \input -> case p input of
-          Nothing -> q input
-          Just (v, out) -> Just (v, out)
-      )
+    empty = P (const Nothing)
+    (P p) <|> (P q) =
+        P
+        ( \input -> case p input of
+            Nothing -> q input
+            Just (v, out) -> Just (v, out)
+        )
 
 instance Alternative Maybe where
     empty = Nothing
