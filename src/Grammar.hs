@@ -1,13 +1,17 @@
 module Grammar where
 
 data Type = DoubleType Double | BoolType Bool | ArrayType [Type]
-  deriving Show
+
+instance Show Type where
+    show (DoubleType d) = show d
+    show (BoolType d) = show d
+    show (ArrayType d) = show d
 
 data Program
     = Empty
     | Single Command
     | Sequence Command Program
-    deriving Show
+    deriving (Show, Eq)
 
 data Command
     = Skip
@@ -15,44 +19,45 @@ data Command
     | Assignment Variable Exp
     | IfThenElse BExp Program Program
     | While BExp Program
-    deriving Show
+    deriving (Show, Eq)
 
 data ArrDecl
     = Intensional Variable AExp
-    | Extensional [Exp]
-    deriving Show
+    | Extensional Variable [Exp]
+    deriving (Show, Eq)
 
 data Exp
-    = AExp AExp
+    = Var Variable
     | BExp BExp
-    deriving Show
+    | AExp AExp
+    deriving (Show, Eq)
 
 data AExp
     = Number Double
-    | AVariable Variable
+    | AVar Variable
     | AExpOp AExp AOp AExp
     | Negation AExp
-    deriving Show
+    deriving (Show, Eq)
 
 data AOp
     = Add
     | Sub
     | Mul
     | Div
-    deriving Show
+    deriving (Show, Eq)
 
 data BExp
     = BExpOp BExp BOp BExp
     | Not BExp
     | Comparison AExp ComparisonOp AExp
-    | BVariable Variable
+    | BVar Variable
     | Boolean Bool
-    deriving Show
+    deriving (Show, Eq)
 
 data BOp
     = Or
     | And
-    deriving Show
+    deriving (Show, Eq)
 
 data ComparisonOp
   = Lt
@@ -61,14 +66,9 @@ data ComparisonOp
   | Ge
   | Eq
   | Neq
-  deriving Show
+  deriving (Show, Eq)
 
 data Variable  
     = Identifier [Char]
-    | MemLocation [Char] AExp
-    deriving Show
-
-type Constructor = [Char]
-
---main = Not (Comparison (Negation Minus (AExpOp (Negation Minus (Constant 3)) Add (Constant 3))) Lt (Constant 3))
--- b = AExpOp (AExpOp (Constant 3) Sub (Constant 5)) Add (Constant 3)
+    | MemLocation Variable AExp
+    deriving (Show, Eq)

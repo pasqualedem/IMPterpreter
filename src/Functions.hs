@@ -18,3 +18,10 @@ isDigit c = c `elem` ['0' .. '9']
 
 isAlphaNum :: Char -> Bool
 isAlphaNum c = isAlpha c || isDigit c
+
+isKeyword :: [Char] -> Bool
+isKeyword s =  s `elem` ["True", "False", "if", "then", "else", "do", "end"]
+
+isIdentifier :: [Char] -> Bool
+isIdentifier [c] = isAlpha c
+isIdentifier s = not(isKeyword s)

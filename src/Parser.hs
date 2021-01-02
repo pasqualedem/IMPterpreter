@@ -1,7 +1,7 @@
 module Parser where
 import Grammar (AExp (..), BExp (..), Command (..), ComparisonOp (..), AOp (..), BOp (..), Exp (..), Variable (..), Program (..), ArrDecl (..))
 import Functions
-    ( isSpace, isAlphaNum, isAlpha, isUpper, isLower, isDigit )
+    ( isSpace, isAlphaNum, isAlpha, isUpper, isLower, isDigit, isIdentifier)
 
 
 newtype Parser a = P (String -> Maybe (a, String))
@@ -14,9 +14,8 @@ parse s = case p s of
     (P p) = program
 
 parseFailed :: (Program, [Char]) -> Bool
-parseFailed (Empty, "") = True
 parseFailed (_, "") = False
-parseFailed (_, _) = False
+parseFailed (_, _) = True
 
 instance Functor Parser where
   fmap g (P p) =
@@ -37,7 +36,6 @@ instance Applicative Parser where
       )
 
 instance Monad Parser where
-  --(>>=) :: m a -> (a -> m b) -> m b
   (P p) >>= f =
     P
       ( \input -> case p input of
@@ -48,7 +46,6 @@ instance Monad Parser where
 
 instance Alternative Parser where
   empty = P (const Nothing)
-
   (P p) <|> (P q) =
     P
       ( \input -> case p input of
@@ -68,6 +65,7 @@ class Monad f => Alternative f where
     some :: f a -> f [a]
     many x = some x <|> pure []
     some x = ((:) <$> x) <*> many x
+
 
 ------ Atomic element parsing ------
 
@@ -124,12 +122,12 @@ symbol xs = token (string xs)
 
 token :: Parser a -> Parser a
 token p = 
- do {
-  space;
-  v <- p;
-  space;
-  return v;
- }
+    do 
+        space;
+        v <- p;
+        space;
+        return v;
+
 
 ------ Arithmetic expression parsing ------
 
@@ -159,28 +157,35 @@ number =
         return (- num)
     )
 
+
+identifier ::  Parser Variable
+identifier =
+    do
+        l <- letter
+        ls <- many alphanum 
+        if  isIdentifier (l:ls) then return (Identifier (l:ls)) else empty
+
 variable :: Parser Variable 
 variable =
     do
-        ltr <- letter
-        ls <- many alphanum
+        id <- identifier
         do
             symbol "["
             a <- aexp
             symbol "]"
-            return (MemLocation (ltr : ls) a)
-            <|> do 
-            return (Identifier (ltr : ls))
+            return (MemLocation id a)
+            <|> 
+            return id 
 
 afactor :: Parser AExp
 afactor = 
     (do Number <$> number) 
     <|>
-    (do AVariable <$> variable)
+    (do AVar <$> variable)
     <|>
     (do 
         symbol "-"
-        Negation . AVariable <$> variable
+        Negation . AVar <$> variable
     )
     <|>
     (do
@@ -290,11 +295,11 @@ bfactor =
         Comparison a1 c <$> aexp
     )
     <|>
-    (do BVariable <$> variable)
+    (do BVar <$> variable)
     <|>    
     (do 
         symbol "!"
-        Not . BVariable <$> variable
+        Not . BVar <$> variable
     )
     <|>
     (do
@@ -395,7 +400,8 @@ arraydeclaration =
                 symbol "{"
                 exps <- arrayElements
                 symbol "}"
-                return (ArrayDeclaration (Extensional exps))
+                symbol ";"
+                return (ArrayDeclaration (Extensional v exps))
 
 assignment :: Parser Command
 assignment = 
@@ -403,13 +409,17 @@ assignment =
         v <- variable
         symbol "="
         do
-            e <- (do BExp <$> bexp)
+            x <- variable
             symbol ";"
-            return (Assignment v e)
+            return (Assignment v (Var x))
             <|> do
                 e <- (do AExp <$> aexp)
                 symbol ";"
                 return (Assignment v e)
+                <|> do
+                    e <- (do BExp <$> bexp)
+                    symbol ";"
+                    return (Assignment v e)
     
 ifthenelse :: Parser Command
 ifthenelse =
@@ -419,29 +429,16 @@ ifthenelse =
         b <- bexp
         symbol ")"
         symbol "then"
-        symbol "{"
         pthen <- program
-        symbol "}"
-        symbol "else"
-        symbol "{"
-        pelse <- program
-        symbol "}"
-        symbol ";"
-        return (IfThenElse b pthen pelse)
-    <|> 
-    do
-        symbol "if"
-        symbol "("
-        b <- bexp
-        symbol ")"
-        symbol "then"
-        symbol "{"
-        pthen <- program
-        symbol "}"
-        symbol ";"
-        return (IfThenElse b pthen (Single Skip))
+        do
+            symbol "else"
+            pelse <- program
+            symbol "end"
+            return (IfThenElse b pthen pelse)
+            <|> do
+                symbol "end"
+                return (IfThenElse b pthen (Single Skip))
     
-
 while :: Parser Command
 while = 
     do
@@ -450,8 +447,6 @@ while =
         b <- bexp
         symbol ")"
         symbol "do"
-        symbol "{"
         p <- program
-        symbol "}"
-        symbol ";"
+        symbol "end"
         return (While b p)
