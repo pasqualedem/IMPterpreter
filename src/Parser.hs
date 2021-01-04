@@ -350,13 +350,13 @@ skip =
         symbol ";"
         return Skip
 
-arrayElements :: Parser [Exp]
-arrayElements =
+arrayelements :: Parser [Exp]
+arrayelements =
     do
         v <- (do Var <$> variable)
         do
             symbol ","
-            t <- arrayElements
+            t <- arrayelements
             return (v:t)
             <|>
             return [v]
@@ -365,7 +365,7 @@ arrayElements =
         b <- (do BExp <$> bexp)
         do
             symbol ","
-            t <- arrayElements
+            t <- arrayelements
             return (b:t)
             <|>
             return [b]
@@ -374,7 +374,7 @@ arrayElements =
         a <- (do AExp <$> aexp)
         do
             symbol ","
-            t <- arrayElements
+            t <- arrayelements
             return (a:t)
             <|>
             return [a]
@@ -383,7 +383,7 @@ arrayElements =
         a <- arraydeclaration
         do
             symbol ","
-            t <- arrayElements
+            t <- arrayelements
             return (a:t)
             <|>
             return [a]
@@ -391,7 +391,7 @@ arrayElements =
 arraydeclaration :: Parser Exp
 arraydeclaration = 
     do
-        symbol "Array"
+        symbol "array"
         symbol "("
         n <- aexp
         symbol ")"
@@ -399,7 +399,7 @@ arraydeclaration =
     <|> 
     do
         symbol "["
-        exps <- arrayElements
+        exps <- arrayelements
         symbol "]"
         return (ArrExtensional exps)
 
@@ -408,11 +408,11 @@ assignment =
     do
         v <- variable
         symbol "="
-        Assignment v <$> endExpr
+        Assignment v <$> rightValue
 
 
-endExpr :: Parser Exp
-endExpr =
+rightValue :: Parser Exp
+rightValue =
     do
         x <- variable
         symbol ";"

@@ -20,7 +20,7 @@ isAlphaNum :: Char -> Bool
 isAlphaNum c = isAlpha c || isDigit c
 
 isKeyword :: [Char] -> Bool
-isKeyword s =  s `elem` ["True", "False", "if", "then", "else", "do", "end", "Array"]
+isKeyword s =  s `elem` ["True", "False", "if", "then", "else", "do", "end", "array"]
 
 isIdentifier :: [Char] -> Bool
 isIdentifier [c] = isAlpha c

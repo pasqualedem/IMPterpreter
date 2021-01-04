@@ -66,14 +66,14 @@ setArrayElement (TArray l) [i] v = TArray (f ++ v:as)
     where (f, a:as) = splitAt (floor i) l 
 setArrayElement (TArray l) (i:is) v = TArray (f ++ setArrayElement a is v:as)
     where (f, a:as) = splitAt (floor i) l 
-setArrayElement _ _ _ = error "DimensionOutOfboundsError"
+setArrayElement _ _ _ = error "DimensionOutOfBoundsError"
 
 -- Get an element of an array given an index
 getArrayElement :: VType -> [Double] -> VType
 getArrayElement (TArray []) _ =  error "IndexOutOfRange"
 getArrayElement (TArray l) [i] = l !! floor i
 getArrayElement (TArray l) (i:is) = getArrayElement (l !! floor i) is
-getArrayElement _ _  = error "DimensionOutOfboundsError"
+getArrayElement _ _  = error "DimensionOutOfBoundsError"
 
 -- Construct an array given the list of expression
 makeArrayExtensional :: Env -> [Exp] -> VType
@@ -97,7 +97,7 @@ evalVar env (Identifier var) =
         Just (TArray arr) -> TArray arr
         Nothing ->  error "VariableNotDefined"
 evalVar env (ArrayLocation var i) = getArrayElement (evalVar env (Identifier v)) indexes
-    where (v, indexes) = unfoldArrayElement env (ArrayLocation var i) 
+    where (v, indexes) = unfoldArrayIndexes env (ArrayLocation var i) 
 
 -- Get a variable value from the Env and check the type matching
 safeEvalVar :: Env -> Tree.Variable -> String -> VType
@@ -158,17 +158,17 @@ arrayElementAssignment env identifier ix value =
                     _ -> error "VariableNotArrayError"
 
 
-unfoldArrayElement :: Env -> Tree.Variable -> ([Char], [Double])
-unfoldArrayElement env (ArrayLocation (Identifier id) j) = (id, execExpr env (AExp j) (\x -> [getDouble x]))
-unfoldArrayElement env (ArrayLocation var j)  = (id, execExpr env (AExp j) (\x -> getDouble x:l))
-    where (id, l) = unfoldArrayElement env var
+unfoldArrayIndexes :: Env -> Tree.Variable -> ([Char], [Double])
+unfoldArrayIndexes env (ArrayLocation (Identifier id) j) = (id, execExpr env (AExp j) (\x -> [getDouble x]))
+unfoldArrayIndexes env (ArrayLocation var j)  = (id, execExpr env (AExp j) (\x -> getDouble x:l))
+    where (id, l) = unfoldArrayIndexes env var
 
 -- Execute a statement of the program and apply its effects to the enviroment
 execStatement :: Env -> Command -> Env
 execStatement env Skip = env
 execStatement env (Assignment (Identifier v) e) =  execExpr env e (insertVar env . Evaluator.Variable v)
 execStatement env (Assignment (ArrayLocation var i) e) = execExpr env e (arrayElementAssignment env id idx)
-    where (id, idx) = unfoldArrayElement env (ArrayLocation var i)
+    where (id, idx) = unfoldArrayIndexes env (ArrayLocation var i)
 
 execStatement env (IfThenElse b pthen pelse) = execExpr env (BExp b) 
     (\bvalue -> if getBool bvalue then exec env pthen else exec env pelse)

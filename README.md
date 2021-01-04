@@ -9,11 +9,11 @@ An interpreter is a program that directly analyse and execute instructions writt
 The basic constructs of IMP are:
 
  - Skip: does nothing
- - Assignment: evaluate an rvalue and assign it to a variable
+ - Assignment: evaluate an expression and assign it to a variable
  - If then else: Performs the conditional selection between two paths
  - While: Loop a set of instructions according to a boolean condition
 
-IMPterpreter uses an eager evaluation (call-by-value), so in functions calls as g(f(x)) is evaluate first g and subsequently f. 
+IMPterpreter uses an eager evaluation (call-by-value), so in functions calls like g(f(x)) is evaluated first g and subsequently f. 
 
 ## 2. Grammar
 W.t.r. to the original grammar of IMP, it has been modified to allow the representation of real numbers and arrays. The produced grammar is the following:
@@ -41,8 +41,10 @@ Variable ::= Identifier "[" AExp "]"
 ComparisonOp ::= "<" | ">" | "=" | "<=" | ">=" | "!=" 
 Letter ::= [a-z]
 Semicolon ::= ";" | ";" <space> 
-Spacee ::= " "  
+Space ::= " "  
 ```
+
+In this language there are no declarations, or we can say that declarations coincides with the assignments, so we have **dynamic typing**.
 
 ## 3. Architecture and implementation
 
@@ -51,97 +53,20 @@ The interpreter is made out by two modules:
  - **The evaluator** : Given the output of the parser and an initial environment, it executes the program producing a final environment 
 
 
-### 3.1 Parser
+### 3.1 The parser
 
-The parser can be seen as a function that given a String, produces a representation of the program in a tree structure, in this is case we see the tree structure as a generic type "a", moreover a part of the string or the entire can be not consumed sometimes, so it can return the unconsumed part and can return Nothing if the parsing completely fails; so the definition is: 
+The parser can be seen as a function that given a String, produces a representation of the program in a **tree structure**, in this is case we see the tree structure as a generic type "a". Sometimes a part of the string or the entire can be not consumed, so it can return the unconsumed part or can return Nothing if the parsing completely fails; so the definition is: 
 
 ```Haskell
 newtype Parser a = P (String -> Maybe (a, String))
 ```
-#### 3.1.1 Tree representation
-
-The internal representation of the program is made with a hierarchy of haskell data constructors.
-
-Starting from the top, a program is an **Empty** program, a **Single Command**, or a **Sequence** **Command Program**. Single Command is redundant but allow us to have a more compact structure. 
-
-```haskell
-data Program
-    = Empty
-    | Single Command
-    | Sequence Command Program
-    deriving (Show, Eq)
-```
-
-A Command is one of the basic construct of IMP. Differently from the grammar, the **ArrayDeclaration** is separated from the **Assignment** in order to have more modularity, and a simple structure.
-
-```haskell
-data Command
-    = Skip
-    | ArrayDeclaration ArrDecl
-    | Assignment Variable Exp
-    | IfThenElse BExp Program Program
-    | While BExp Program
-    deriving (Show, Eq)
-```
-
-The array declaration can be **Intensional** giving the number of elements, of **extentional**, giving the sequence of expressions.
-
-```haskell
-data ArrDecl
-    = Intensional Variable AExp
-    | Extensional Variable [Exp]
-    deriving (Show, Eq)
-```
-
-An expression can be an **arithmetic** or **boolean** expression, or a single **Variable**. The single variable case is necessary because in that case we can not infer if it is boolean or arithmetic.
-
-```haskell
-data Exp
-    = Var Variable
-    | BExp BExp
-    | AExp AExp
-    deriving (Show, Eq)
-```
-
-An arithmetic expression can be a **Double**, a **Variable**, an **operation** *(Add, Sub, Mul, Div)* between two expressions, or a **negated** expression.
-
-```haskell
-data AExp
-    = Number Double
-    | AVar Variable
-    | AExpOp AExp AOp AExp
-    | Negation AExp
-    deriving (Show, Eq)
-```
-
-A boolean expression can be a **Bool**, a **negated** expression, a **comparison** *(<, <=, >, >=, ==, !=)* between two arithmetic expressions, a **Variable**, and an **operation**  *(And, Or)* between two boolean expressions.
-
-```haskell
-data BExp
-    = Boolean Bool 
-    | Not BExp
-    | Comparison AExp ComparisonOp AExp
-    | BVar Variable
-    | BExpOp BExp BOp BExp
-    deriving (Show, Eq)
-```
-
-A Variable is an **identifier** or an **ArrayLocation**, so a Variable with an index.
-
-```haskell
-data Variable  
-    = Identifier [Char]
-    | ArrayLocation Variable AExp
-    deriving (Show, Eq)
-```
-
 #### 3.1.2 Functor, Applicative, Monad, Alternative
 
-The following four instances are the core of the parser, because allow multiple parsers to operate in parallel and in sequence.
+The following four instances are the core of the parser, because allow multiple parsers to operate as alternatives and in sequence.
 
 **Functor**
 
-The Functor class provides the function *fmap*, in order to give the possibility to apply a function g to a wrapped value. In our implementation, if the result of out parsing is `Nothing`, it gives `Nothing`, otherwise it returns a result (v, out), we apply g to v and then wrap it in `Just`. In any case we wrap the whole in the Parser type.
+The Functor class provides the function *fmap*, in order to give the possibility to apply a function g to a wrapped value, in our case a function to a value wrapped in a Parser.
 
 ```Haskell
 instance Functor Parser where
@@ -154,7 +79,7 @@ instance Functor Parser where
 ```
 **Applicative**
 
-The Applicative class provides the function `pure` that simply wraps the given input, and the function `<*>`  used to apply a wrapped function to a wrapped value. In our case we extract the wrapped function `pg` and apply an input to it, if it gives Nothing, then Nothing is returned, otherwise we use the fmap function to the result g and the other wrapped value `px`. The result `(P p)` is applied to out. 
+The Applicative class provides the function `pure` that simply wraps the given input, and the function `<*>`  used to apply a wrapped function to a wrapped value, also the result will be wrapped. An Applicative is also a Functor, therefore we can use the fmap function.
 
 ```Haskell
 instance Applicative Parser where
@@ -170,7 +95,7 @@ instance Applicative Parser where
 
 **Monad**
 
-The Monad class provides the function *bind* (>>=). It takes a wrapped value `m a`, a function `a -> m b` and returns  `m b`.  The followed path is similar to Applicative and Functor, if our parsing fails, giving Nothing, the failure is propagated, otherwise we apply the function on the result `v` and if it returns `(P p)` we apply to out. 
+The Monad class is a natural extension of Applicative. It provides the function *bind* (>>=), that takes a wrapped value `m a`, a function `a -> m b` and returns  `m b`. 
 
 Given an instance to Monad, we can use the `do` notation to combine parsers in sequence.
 
@@ -201,7 +126,7 @@ instance Alternative Parser where
         )
 ```
 
-Also, with alternative we can use the function `many`, that applies the parser many times as possible, and `some`, that has the difference that at least one parser have to succeeds.
+Also, with alternative we can define the function `many`, that applies the parser many times as possible, and `some`, that has the difference that at least one parser have to succeeds.
 
 ```haskell
 class Monad f => Alternative f where
@@ -252,7 +177,7 @@ Now is possible to define the following parsers:
 
 #### 3.1.4 Variable parsing
 
-In our language a variable is either an identifier or a location of an array. An identifier is an alphanumeric string starting with a letter; a location of an array is an identifier plus an arithmetic expression surrounded by square parenthesis.
+In our language a variable is either an identifier or a location of an array. An identifier is an alphanumeric string starting with a letter; a location of an array is an identifier plus an arithmetic expression surrounded by square parenthesis. The `arrayindexes` parser gives us the possibility to use an arbitrary number of square bracket operators in our variables. <br>For example: <br>`x[i][j][k]` 
 
 ```haskell
 identifier ::  Parser Variable
@@ -267,12 +192,21 @@ variable =
     do
         id <- identifier
         do
-            symbol "["
-            a <- aexp
-            symbol "]"
-            return (ArrayLocation id a)
+            arrayindexes id
             <|> 
             return id 
+
+arrayindexes :: Variable -> Parser Variable
+arrayindexes id =
+    do
+        symbol "["
+        a <- aexp
+        symbol "]"
+        do
+            v <- arrayindexes id
+            return (ArrayLocation v a)
+            <|>
+            return (ArrayLocation id a)
 ```
 
 
@@ -310,7 +244,7 @@ number =
 
 ```
 
-Then we can write the `aexp` parser. It builds a derivation tree in a left-associative way, so `4+5*4 = (4+5)*4`. Also the primary operations "+" and "-" have higher priority on "*" and "/". It uses the subparsers `aterm` and `afactor`.
+Then we can write the `aexp` parser. It builds a derivation tree in a left-associative way, so `4+5*4 = (4+5)*4`. Also the primary operations "+" and "-" have lower priority on "*" and "/". It uses the subparsers `aterm` and `afactor`.
 
 ```haskell
 afactor :: Parser AExp
@@ -423,7 +357,6 @@ program =
 command :: Parser Command
 command =
     skip <|>
-    arraydeclaration <|>
     assignment <|>
     ifthenelse <|>
     while
@@ -438,55 +371,12 @@ skip =
         symbol ";"
         return Skip
 ```
-IMPterpreter allow an extensional declaration of arrays, for example: `v = {1, 2, 3, 4, 5}`. The parser `arrayElements` parses the all the expressions contained in the extensional declaration. It can be noticed that this parser allow arrays with elements of different type.
-<br>
-Moreover we can declare an array giving the number of elements: `v = Array(n)`
-
-```haskell
-arrayElements :: Parser [Exp]
-arrayElements =
-    do
-        b <- (do BExp <$> bexp)
-        do
-            symbol ","
-            t <- arrayElements
-            return (b:t)
-            <|>
-            return [b]
-    <|>
-    do
-        a <- (do AExp <$> aexp)
-        do
-            symbol ","
-            t <- arrayElements
-            return (a:t)
-            <|>
-            return [a]
-
-arraydeclaration :: Parser Command
-arraydeclaration = 
-    do
-        v <- variable
-        symbol "="
-        do
-            symbol "Array"
-            symbol "("
-            n <- aexp
-            symbol ")"
-            symbol ";"
-            return (ArrayDeclaration (Intensional v n))
-            <|> do
-                symbol "{"
-                exps <- arrayElements
-                symbol "}"
-                symbol ";"
-                return (ArrayDeclaration (Extensional v exps))
-```
-The `assignment` parser consumes a variable followed by "=", and then we have 3 alternatives:
+The `assignment` parser consumes a variable followed by "=", and then we have 4 alternatives:
 
 - aexp
 - bexp
 - variable
+- arraydeclaration
 
 The "variable" can seem a bit redundant, as aexp and bexp contain it, but at the parsing level in an assignment like `x = y` the parser can not infer the type of y so we need this extra case.
 
@@ -496,19 +386,88 @@ assignment =
     do
         v <- variable
         symbol "="
+        Assignment v <$> rightValue
+
+
+rightValue :: Parser Exp
+rightValue =
+    do
+        x <- variable
+        symbol ";"
+        return (Var x)
+    <|> 
+    do
+        e <- (do AExp <$> aexp)
+        symbol ";"
+        return e
+    <|> 
         do
-            x <- variable
-            symbol ";"
-            return (Assignment v (Var x))
-            <|> do
-                e <- (do AExp <$> aexp)
-                symbol ";"
-                return (Assignment v e)
-                <|> do
-                    e <- (do BExp <$> bexp)
-                    symbol ";"
-                    return (Assignment v e)
+        e <- (do BExp <$> bexp)
+        symbol ";"
+        return e
+    <|> 
+    do
+        e <- arraydeclaration
+        symbol ";"
+        return e
 ```
+IMPterpreter allow an extensional declaration of arrays, for example: `v = [1, 2, 3, [4, False], 5]`. As we can see arrays can have elements of different type. <br>The parser `arrayelements` parses the all the expressions contained in the extensional declaration. It can be noticed that this parser allow arrays with elements of different type.<br>Moreover we can declare an array giving the number of elements: `v = array(n)`
+
+```haskell
+arraydeclaration :: Parser Exp
+arraydeclaration = 
+    do
+        symbol "array"
+        symbol "("
+        n <- aexp
+        symbol ")"
+        return (ArrIntensional n)
+    <|> 
+    do
+        symbol "["
+        exps <- arrayelements
+        symbol "]"
+        return (ArrExtensional exps)
+        
+arrayelements :: Parser [Exp]
+arrayelements =
+    do
+        v <- (do Var <$> variable)
+        do
+            symbol ","
+            t <- arrayelements
+            return (v:t)
+            <|>
+            return [v]
+    <|>
+    do
+        b <- (do BExp <$> bexp)
+        do
+            symbol ","
+            t <- arrayelements
+            return (b:t)
+            <|>
+            return [b]
+    <|>
+    do
+        a <- (do AExp <$> aexp)
+        do
+            symbol ","
+            t <- arrayelements
+            return (a:t)
+            <|>
+            return [a]
+    <|>
+    do
+        a <- arraydeclaration
+        do
+            symbol ","
+            t <- arrayelements
+            return (a:t)
+            <|>
+            return [a]
+```
+
 The `ifthenelse` parser recognize the keyword **if**, subsequently it parses a boolean expression, and look for the **then** keyword. In the then-block as in the else-block is used the `program` parser. The IMP IfThenElse can omit the else-block and it ends with the **end** keyword.
 
 ```haskell
@@ -528,7 +487,7 @@ ifthenelse =
                 symbol "end"
                 return (IfThenElse b pthen (Single Skip))
 ```
-The last parser is `while`, it look for the `while` keyword, then parse a boolean expression, subsequently it recognize the **do** keyword, parses a `program` and look for the **end** keyword.
+The last parser is `while`, it look for the **while** keyword, then parse a boolean expression, subsequently it recognize the **do** keyword, parses a `program` and look for the **end** keyword.
 
 ```haskell
 while :: Parser Command
@@ -561,15 +520,15 @@ Successful parsing:
 
 <img src="docs\imgs\parsingSuccess.png" alt="parsingSuccess" style="zoom:150%;" />
 
-Failing parsing:
+Fallimentar parsing:
 
 <img src="docs\imgs\parsingFail.png" alt="parsingFail" style="zoom:150%;" />
 
-Partial success parsing:
+Partial successful parsing:
 
 <img src="docs\imgs\parsingPartialSuccess.png" alt="parsingPartialSuccess" style="zoom:150%;" />
 
-### 3.2 Evaluator
+### 3.2 The evaluator
 
 The module Evaluator provides the functions to evaluate a program in the *internal tree representation* given an environment, and to produce a new environment.
 
@@ -601,6 +560,7 @@ The environment is managed by a *reading* and a *writing* function.
 **getVarValue** returns value of the variable wrapped by **Maybe** given its name. If the name is not present returns **Nothing**.
 
 ```haskell
+-- Search the value of a variable store in the Env given its name
 getVarValue :: Env -> String -> Maybe VType
 getVarValue [] _ = Nothing
 getVarValue (x:xs) qName = 
@@ -612,6 +572,7 @@ getVarValue (x:xs) qName =
 **insertVar** insert a new variable in the environment or update an existing one. In the update the value can be arbitrary changed, modifying also its VType. 
 
 ```haskell
+-- insert or update a new variable  
 insertVar :: Env -> Variable -> Env
 insertVar [] var = [var]
 insertVar (x:xs) newVar =
@@ -622,21 +583,19 @@ insertVar (x:xs) newVar =
 
 #### 3.2.2 Variable evaluation
 
-**evalVar** given an identifier check if it exists in the environment and then returns its value, otherwise raise an error. If the variable is an array location it also evaluate is **index expression** and retrieve the array element.
+**evalVar** given a variable check if it exists in the environment and then returns its value, otherwise raise an error. If the variable is an array location it also evaluate is **index expressions** and retrieve the array element.
 
 ```haskell
+-- Get a variable from the Env and return its value
 evalVar :: Env -> Tree.Variable -> VType
 evalVar env (Identifier var) = 
     case getVarValue env var of
         Just (TDouble v) -> TDouble v
         Just (TBool v) -> TBool v
         Just (TArray arr) -> TArray arr
-        Nothing -> error "VariableNotDefined"
-evalVar env (ArrayLocation (Identifier m) a) =
-    case getVarValue env m of
-        Just (TArray v) -> execExpr env (AExp a) (getArrayElement v)
-        Just _ -> error "TypeError"
-        Nothing -> error "VariableNotDefined"
+        Nothing ->  error "VariableNotDefined"
+evalVar env (ArrayLocation var i) = getArrayElement (evalVar env (Identifier v)) indexes
+    where (v, indexes) = unfoldArrayIndexes env (ArrayLocation var i) 
 ```
 **safeEvalVar** check also that the variable is of a given VType.
 
@@ -679,22 +638,25 @@ evalBExpr env (Comparison al op ar) = opCDict op <$> evalAExpr env al <*> evalAE
 
 #### 3.2.5 Command evaluation
 
-**execExpr** is a function used in the command evaluation that evaluate an arbitrary expression and if it returns *Just* a value apply a given *operation* on it. Otherwise raises an error. This functions is useful because it generalize a repeating pattern in the statement evalution.
+**execExpr** is a function used in the command evaluation that evaluates an arbitrary expression and if it returns *Just* a value apply a given *operation* on it. Otherwise raises an error. This function is useful because it generalize a repeating pattern in the statement evaluation.
 
 ```haskell
+-- Evaluate an expression and applicate a function "operation" on it if return Just x
 execExpr :: Env -> Exp -> (VType -> p) -> p
 execExpr env e operation = 
     case e of
         AExp a ->
             case evalAExpr env a of
                 Just x -> operation (TDouble x)
-                Nothing -> error "ArithmeticError"
+                Nothing ->  error "ArithmeticError"
         BExp b ->
             case evalBExpr env b of
                 Just x -> operation (TBool x)
-                Nothing -> error "BooleanError"
+                Nothing ->  error "BooleanError"
         Var v ->
             operation (evalVar env v)
+        ArrIntensional n -> operation (execExpr env (AExp n) makeArrayIntensional)
+        ArrExtensional exps -> operation (makeArrayExtensional env exps)
 ```
 
 **execStatement** evaluates the commands of the program. Assignments are made out using **execExpr**, so evaluating expressions and then inserting the resulting value in the environment. The ifthenelse is executed evaluating the condition and then choosing the corresponding path. Lastly for the while loop we evaluate the conditions if is false we return the unchanged environment, otherwise we execute the commands in the do-block of the while, and then recursively call execStatement.
@@ -702,66 +664,59 @@ execExpr env e operation =
 ```haskell
 execStatement :: Env -> Command -> Env
 execStatement env Skip = env
-execStatement env (Assignment (Identifier v) (AExp a)) =  execExpr env (AExp a) (insertVar env . Evaluator.Variable v)
-execStatement env (Assignment (Identifier v) (BExp b)) =  execExpr env (BExp b) (insertVar env . Evaluator.Variable v)
-execStatement env (Assignment (Identifier v) (Var w)) =  insertVar env  (Evaluator.Variable v (evalVar env w))
-execStatement env (Assignment (ArrayLocation (Identifier v) av) (AExp a)) = execExpr env (AExp a) 
-	(arrayElementAssignment env v av)
-execStatement env (Assignment (ArrayLocation (Identifier v) av) (BExp b)) = execExpr env (BExp b) 
-	(arrayElementAssignment env v av)
-execStatement env (Assignment (ArrayLocation (Identifier v) av) (Var w)) = execExpr env (Var w) 
-	(arrayElementAssignment env v av)
-execStatement env (ArrayDeclaration (Intensional (Identifier v) a)) = execExpr env (AExp a) 
-	(insertVar env . Evaluator.Variable v . TArray . declareArrayIntensional)
-execStatement env (ArrayDeclaration (Extensional (Identifier v) exps)) = insertVar env (Evaluator.Variable v 
-	(TArray (makeArray env exps)))
-execStatement env (ArrayDeclaration (Extensional (ArrayLocation (Identifier v) av) exps)) = arrayElementAssignment env v av  		(TArray (makeArray env exps))
+execStatement env (Assignment (Identifier v) e) =  execExpr env e (insertVar env . Evaluator.Variable v)
+execStatement env (Assignment (ArrayLocation var i) e) = execExpr env e (arrayElementAssignment env id idx)
+    where (id, idx) = unfoldArrayIndexes env (ArrayLocation var i)
 
 execStatement env (IfThenElse b pthen pelse) = execExpr env (BExp b) 
     (\bvalue -> if getBool bvalue then exec env pthen else exec env pelse)
 execStatement env (While b p) = execExpr env (BExp b) 
-    (\bvalue -> if getBool bvalue then execStatement (exec env p) (While b p) else env)
+    (\bvalue -> if getBool bvalue then exec (exec env p) (Single (While b p)) else env)
 ```
 
 #### 3.2.5 Array management 
 
 Arrays are stored in the environment as lists of VType, so they can have different VTypes for each element, even arrays.
 
-The handling of elements is performed by the functions **getArrayElement** and **setArrayElement**. This functions can raise an `IndexOutOfRange` error if the index is higher or equal the array dimension.
+The handling of elements is performed by the functions **getArrayElement** and **setArrayElement**. This functions can raise an `IndexOutOfRange` error if the index is higher or equal the array lenght, or an **DimensionOutOfBoundsError** if the number of indexes is greater than the dimension of the array.
 
 ```haskell
--- Get an element of an array given an index
-getArrayElement :: [p] -> VType -> p
-getArrayElement [] (TDouble index) = error "IndexOutOfRange"
-getArrayElement (a:as) (TDouble index)
-    | index == 0 = a
-    | index > 0 = getArrayElement as (TDouble (index-1))
-
 -- Set an element of an array given an index and a value
-setArrayElement :: [t] -> VType -> t -> [t]
-setArrayElement [] (TDouble index) v = error "IndexOutOfRange"
-setArrayElement (a:as) (TDouble index) v
-    | index == 0 = v:as
-    | index > 0 = a:setArrayElement as (TDouble (index-1)) v
+setArrayElement :: VType -> [Double] -> VType -> VType
+setArrayElement (TArray []) _ v =  error "IndexOutOfRange"
+setArrayElement (TArray l) [i] v = TArray (f ++ v:as)
+    where (f, a:as) = splitAt (floor i) l 
+setArrayElement (TArray l) (i:is) v = TArray (f ++ setArrayElement a is v:as)
+    where (f, a:as) = splitAt (floor i) l 
+setArrayElement _ _ _ = error "DimensionOutOfBoundsError"
+
+-- Get an element of an array given an index
+getArrayElement :: VType -> [Double] -> VType
+getArrayElement (TArray []) _ =  error "IndexOutOfRange"
+getArrayElement (TArray l) [i] = l !! floor i
+getArrayElement (TArray l) (i:is) = getArrayElement (l !! floor i) is
+getArrayElement _ _  = error "DimensionOutOfBoundsError"
 ```
 
 The intensional declaration is made out by the **makeArrayIntensional** function. The default values of arrays are `TDouble 0`.
 
 ```haskell
 -- Construct an array given the number of elements
-makeArrayIntensional :: VType -> [VType]
+makeArrayIntensional :: VType -> VType
 makeArrayIntensional (TDouble d)
-    | d == 0 = []
-    | d > 0  =  TDouble 0: makeArrayIntensional (TDouble (d-1))
+    | d == 0 = TArray []
+    | d > 0  =  TArray (TDouble 0: t)
+        where TArray t = makeArrayIntensional (TDouble (d-1))
 ```
 
 **makeArrayExtensional** builds an array from a list of expressions, evaluating each one.
 
 ```haskell
--- Construct an arrat given the number of elements
-makeArrayExtensional :: Env -> [Exp] -> [VType]
-makeArrayExtensional env [exp] = execExpr env exp (:[])
-makeArrayExtensional env (e:ex) = execExpr env e (\x -> x:makeArrayExtensional env ex)
+-- Construct an array given the list of expression
+makeArrayExtensional :: Env -> [Exp] -> VType
+makeArrayExtensional env [exp] = execExpr env exp (\x -> TArray [x])
+makeArrayExtensional env (e:ex) = execExpr env e (\x -> TArray (x:t))
+    where (TArray t) = makeArrayExtensional env ex
 ```
 
 
