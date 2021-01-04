@@ -1,12 +1,5 @@
 module Tree where
 
-data Type = DoubleType Double | BoolType Bool | ArrayType [Type]
-
-instance Show Type where
-    show (DoubleType d) = show d
-    show (BoolType d) = show d
-    show (ArrayType d) = show d
-
 data Program
     = Empty
     | Single Command
@@ -15,21 +8,18 @@ data Program
 
 data Command
     = Skip
-    | ArrayDeclaration ArrDecl
     | Assignment Variable Exp
     | IfThenElse BExp Program Program
     | While BExp Program
     deriving (Show, Eq)
 
-data ArrDecl
-    = Intensional Variable AExp
-    | Extensional Variable [Exp]
-    deriving (Show, Eq)
 
 data Exp
     = Var Variable
     | BExp BExp
     | AExp AExp
+    | ArrIntensional AExp
+    | ArrExtensional [Exp]
     deriving (Show, Eq)
 
 data AExp
@@ -47,11 +37,11 @@ data AOp
     deriving (Show, Eq)
 
 data BExp
-    = BExpOp BExp BOp BExp
+    = Boolean Bool 
     | Not BExp
     | Comparison AExp ComparisonOp AExp
     | BVar Variable
-    | Boolean Bool
+    | BExpOp BExp BOp BExp
     deriving (Show, Eq)
 
 data BOp
@@ -70,5 +60,5 @@ data ComparisonOp
 
 data Variable  
     = Identifier [Char]
-    | MemLocation Variable AExp
+    | ArrayLocation Variable AExp
     deriving (Show, Eq)

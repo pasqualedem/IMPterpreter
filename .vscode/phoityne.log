@@ -199,3 +199,4 @@
 2020-12-31 17:01:14.527415900000 [$pid(ThreadId 5)] ERROR APP - user error (loaded module can not find from path. <d:\Pasquale\Pasquale\Progetti\Universita\Magistrale\1Y\Formal_Methods_for_Computer_Science\IMPterpreter\src\Interpreter.hs> [("Functions","D:\\Pasquale\\Pasquale\\Progetti\\Universita\\Magistrale\\1Y\\Formal_Methods_for_Computer_Science\\IMPterpreter\\src\\Functions.hs"),("Grammar","D:\\Pasquale\\Pasquale\\Progetti\\Universita\\Magistrale\\1Y\\Formal_Methods_for_Computer_Science\\IMPterpreter\\src\\Grammar.hs"),("Parser","d:/Pasquale/Pasquale/Progetti/Universita/Magistrale/1Y/Formal_Methods_for_Computer_Science/IMPterpreter/src/Parser.hs")])
 2021-01-01 17:08:38.970180500000 [$pid(ThreadId 5)] ERROR APP - start debugging failed. user error (ExecResult not found.) : Left "user error (ExecResult not found.)"
 2021-01-01 17:54:59.699925900000 [$pid(ThreadId 8)] CRITICAL THREAD_MGR - Critical exit started.
+2021-01-03 19:28:53.21111

@@ -1,0 +1,8 @@
+f = 1;
+n = 6;
+i = 1;
+while i<n+1
+    do
+        f=f*i;
+        i=i+1;
+    end

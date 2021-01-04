@@ -1,5 +1,5 @@
 module Parser where
-import Tree (AExp (..), BExp (..), Command (..), ComparisonOp (..), AOp (..), BOp (..), Exp (..), Variable (..), Program (..), ArrDecl (..))
+import Tree (AExp (..), BExp (..), Command (..), ComparisonOp (..), AOp (..), BOp (..), Exp (..), Variable (..), Program (..))
 import Functions
     ( isSpace, isAlphaNum, isAlpha, isUpper, isLower, isDigit, isIdentifier)
 
@@ -13,9 +13,12 @@ parse s = case p s of
   where
     (P p) = program
 
-parseFailed :: (Program, [Char]) -> Bool
-parseFailed (_, "") = False
-parseFailed (_, _) = True
+useparse :: Parser a -> String -> Maybe (a, String)
+useparse (P p)  = p 
+
+isParseFailed :: (Program, String) -> Bool
+isParseFailed (_, "") = False
+isParseFailed (_, _) = True
 
 instance Functor Parser where
     fmap g (P p) =
@@ -73,7 +76,7 @@ class Monad f => Alternative f where
 item :: Parser Char
 item =
   P
-    ( \inp -> case inp of
+    ( \input -> case input of
         [] -> Nothing
         (x : xs) -> Just (x, xs)
     )
@@ -137,17 +140,17 @@ nat =
         ds <- some digit
         return (read ds)
 
-double :: Parser Double
-double =
+positive :: Parser Double
+positive =
     do
-        nat1 <- some digit
+        int <- some digit
         dot <- char '.'
-        nat2 <- some digit
-        return (read (nat1 ++ [dot] ++ nat2))
+        decimal <- some digit
+        return (read (int ++ [dot] ++ decimal))
 
 number :: Parser Double
 number = 
-    double
+    positive
     <|>
     nat
     <|>
@@ -170,12 +173,21 @@ variable =
     do
         id <- identifier
         do
-            symbol "["
-            a <- aexp
-            symbol "]"
-            return (MemLocation id a)
+            arrayindexes id
             <|> 
             return id 
+
+arrayindexes :: Variable -> Parser Variable
+arrayindexes id =
+    do
+        symbol "["
+        a <- aexp
+        symbol "]"
+        do
+            v <- arrayindexes id
+            return (ArrayLocation v a)
+            <|>
+            return (ArrayLocation id a)
 
 afactor :: Parser AExp
 afactor = 
@@ -192,7 +204,7 @@ afactor =
     <|> 
     (do
         symbol "-"
-        Negation  <$> aexp
+        Negation <$> aexp
     )
 
 aterm :: Parser AExp
@@ -232,20 +244,20 @@ aexp =
 comparison :: Parser ComparisonOp
 comparison =
     do
-        symbol "<"
-        return Lt
-    <|>
-    do
         symbol "<="
         return Le
     <|> 
     do
-        symbol ">"
-        return Gt
-    <|> 
-    do
         symbol ">="
         return Ge
+    <|> 
+    do
+        symbol "<"
+        return Lt
+    <|>
+    do
+        symbol ">"
+        return Gt
     <|> 
     do
         symbol "=="
@@ -327,7 +339,6 @@ program =
 command :: Parser Command
 command =
     skip <|>
-    arraydeclaration <|>
     assignment <|>
     ifthenelse <|>
     while
@@ -341,6 +352,15 @@ skip =
 
 arrayElements :: Parser [Exp]
 arrayElements =
+    do
+        v <- (do Var <$> variable)
+        do
+            symbol ","
+            t <- arrayElements
+            return (v:t)
+            <|>
+            return [v]
+    <|>
     do
         b <- (do BExp <$> bexp)
         do
@@ -358,51 +378,66 @@ arrayElements =
             return (a:t)
             <|>
             return [a]
+    <|>
+    do
+        a <- arraydeclaration
+        do
+            symbol ","
+            t <- arrayElements
+            return (a:t)
+            <|>
+            return [a]
 
-arraydeclaration :: Parser Command
+arraydeclaration :: Parser Exp
 arraydeclaration = 
     do
-        v <- variable
-        symbol "="
-        do
-            symbol "Array"
-            symbol "("
-            n <- aexp
-            symbol ")"
-            symbol ";"
-            return (ArrayDeclaration (Intensional v n))
-            <|> do
-                symbol "{"
-                exps <- arrayElements
-                symbol "}"
-                symbol ";"
-                return (ArrayDeclaration (Extensional v exps))
+        symbol "Array"
+        symbol "("
+        n <- aexp
+        symbol ")"
+        return (ArrIntensional n)
+    <|> 
+    do
+        symbol "["
+        exps <- arrayElements
+        symbol "]"
+        return (ArrExtensional exps)
 
 assignment :: Parser Command
 assignment = 
     do
         v <- variable
         symbol "="
+        Assignment v <$> endExpr
+
+
+endExpr :: Parser Exp
+endExpr =
+    do
+        x <- variable
+        symbol ";"
+        return (Var x)
+    <|> 
+    do
+        e <- (do AExp <$> aexp)
+        symbol ";"
+        return e
+    <|> 
         do
-            x <- variable
-            symbol ";"
-            return (Assignment v (Var x))
-            <|> do
-                e <- (do AExp <$> aexp)
-                symbol ";"
-                return (Assignment v e)
-                <|> do
-                    e <- (do BExp <$> bexp)
-                    symbol ";"
-                    return (Assignment v e)
-    
+        e <- (do BExp <$> bexp)
+        symbol ";"
+        return e
+    <|> 
+    do
+        e <- arraydeclaration
+        symbol ";"
+        return e
+
 ifthenelse :: Parser Command
 ifthenelse =
     do
         symbol "if"
-        symbol "("
         b <- bexp
-        symbol ")"
         symbol "then"
         pthen <- program
         do
@@ -418,9 +453,7 @@ while :: Parser Command
 while = 
     do
         symbol "while"
-        symbol "("
         b <- bexp
-        symbol ")"
         symbol "do"
         p <- program
         symbol "end"

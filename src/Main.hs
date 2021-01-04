@@ -1,23 +1,40 @@
 module Main where
 
-import Parser ( parse, parseFailed )
+import Parser ( parse, isParseFailed )
 import Evaluator ( Env, exec, Env, showEnv )
 import Tree ( Program (..) ) 
 
+lineString :: [Char]
+lineString = "IMPterpreter> "
+
+-- A dummy function used to force eager evaluation in Haskell
+-- in order to catch errors before printing the environment
+force :: p -> [Char]
+force env = ""
 
 menu :: Env -> String -> IO ()
-menu _ "" = 
+menu env "" = 
     do
+        putStr lineString
         input <- getLine
-        menu [] input
+        menu env input
 
-menu env (':':('l':file)) =
+menu env (':':('l':(' ':file))) =
     do   
         prog <- readFile file
         execute env prog
 
-menu env (':':('q':other)) =
+menu env (':':('e':('n':('v':other)))) =
     do   
+        putStrLn ("\nEnviroment:\n" ++ showEnv env)   
+        execute env ""
+
+menu env (':':('c':('l':other))) =
+    do   
+        execute [] ""
+
+menu env (':':('q':other)) =
+    do
         putStrLn "Goodbye!"
 
 menu env prog = execute env prog
@@ -26,32 +43,34 @@ execute :: Env -> [Char] -> IO ()
 execute env prog = 
     do
         let parsedProg = parse prog
-        if parseFailed parsedProg
+        if isParseFailed parsedProg
             then do
                 putStrLn "Parsing failed, string not consumed:"
                 putStrLn (snd parsedProg)
+                putStr lineString
                 input <- getLine 
                 menu env input
             else do
-                let newEnv = exec env (fst parsedProg);
-                putStrLn ("Enviroment:\n" ++ showEnv newEnv)
+                let newEnv = exec env (fst parsedProg)
+                putStr (force $! newEnv) -- Force the evaluation of the environment
+                putStr lineString
                 input <- getLine 
                 menu newEnv input
         
 main :: IO ()
 main =
     do
-        putStrLn "-------------------------------------------------------------------------------"
-        putStrLn "                 ____                                                         "
-        putStrLn "    |  |\\    /| |    |  |    ____       ____        ____   |    ____          "
-        putStrLn "    |  | \\  / | |    | ---- |    | | / |    | |  / |    | ---- |    | |  /    "
-        putStrLn "    |  |  \\/  | |____|  |   |____| |/  |____| |/   |____|  |   |____| |/      "
-        putStrLn "    |  |      | |       |   |      |   |      |    |       |   |      |       "
-        putStrLn "    |  |      | |       |   |____  |   |      |    |____   |   |____  |       "
-        putStrLn "                                                                               "
-        putStrLn "----------------------------- Pasquale De Marinis -----------------------------"
+        putStrLn "-------------------------------------------------------------------------------------------------"
+        putStrLn " ██ ███    ███ ██████  ████████ ███████ ██████  ██████  ██████  ███████ ████████ ███████ ██████  "
+        putStrLn " ██ ████  ████ ██   ██    ██    ██      ██   ██ ██   ██ ██   ██ ██         ██    ██      ██   ██ "
+        putStrLn " ██ ██ ████ ██ ██████     ██    █████   ██████  ██████  ██████  █████      ██    █████   ██████  "
+        putStrLn " ██ ██  ██  ██ ██         ██    ██      ██   ██ ██      ██   ██ ██         ██    ██      ██   ██ "
+        putStrLn " ██ ██      ██ ██         ██    ███████ ██   ██ ██      ██   ██ ███████    ██    ███████ ██   ██ "
+        putStrLn "-------------------------------------- Pasquale De Marinis --------------------------------------\n"    
         putStrLn "Type the instructions to be executed"
-        putStrLn "Type :l file to load and execute instructions in a file"
-        putStrLn "Type :q to quit"
+        putStrLn "Type ':l filename' to load and execute instructions from file"
+        putStrLn "Type ':env' to show the enviroment"
+        putStrLn "Type ':cl' to clear the enviroment"
+        putStrLn "Type ':q' to quit\n"
         menu [] ""
-
+        

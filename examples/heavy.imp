@@ -1,0 +1,14 @@
+n=10000;
+m=10000;
+i=0;
+j=0;
+
+
+while i<n
+do
+    while j<n
+    do
+        j=j+1;
+    end
+    i=i+1;
+end

@@ -1,0 +1,25 @@
+M = 2;
+N = 2;
+P = 2;
+A = [[1, 2], [3, 4]];
+B = [[6, 4], [3, 1]];
+C = [[0, 0], [0, 0]];
+
+i = 0;
+j = 0;
+k = 0;
+while i<M
+    do
+    j=0;
+    while j<P
+        do
+        k=0;
+        while k<N
+            do
+            C[i][j] = C[i][j] + A[i][k] * B[k][j];
+            k = k + 1;
+        end
+        j = j + 1;
+    end
+    i = i + 1;
+end
