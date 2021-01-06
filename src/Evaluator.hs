@@ -16,6 +16,9 @@ instance Show VType where
     show (TBool d) = show d
     show (TArray d) = show d
 
+exception :: [Char] -> a
+exception = errorWithoutStackTrace
+
 -- Dictionary between grammar arithmetic operations and actual operations
 opADict :: Fractional a => AOp -> a -> a -> a
 opADict Add = (+)
@@ -61,19 +64,19 @@ showEnv ((Variable name value):xs) = name ++ " = " ++ show value
 
 -- Set an element of an array given an index and a value
 setArrayElement :: VType -> [Double] -> VType -> VType
-setArrayElement (TArray []) _ v =  error "IndexOutOfRange"
+setArrayElement (TArray []) _ v =  exception "IndexOutOfRange"
 setArrayElement (TArray l) [i] v = TArray (f ++ v:as)
     where (f, a:as) = splitAt (floor i) l 
 setArrayElement (TArray l) (i:is) v = TArray (f ++ setArrayElement a is v:as)
     where (f, a:as) = splitAt (floor i) l 
-setArrayElement _ _ _ = error "DimensionOutOfBoundsError"
+setArrayElement _ _ _ = exception "DimensionOutOfBoundsError"
 
 -- Get an element of an array given an index
 getArrayElement :: VType -> [Double] -> VType
-getArrayElement (TArray []) _ =  error "IndexOutOfRange"
+getArrayElement (TArray []) _ =  exception "IndexOutOfRange"
 getArrayElement (TArray l) [i] = l !! floor i
 getArrayElement (TArray l) (i:is) = getArrayElement (l !! floor i) is
-getArrayElement _ _  = error "DimensionOutOfBoundsError"
+getArrayElement _ _  = exception "DimensionOutOfBoundsError"
 
 -- Construct an array given the list of expression
 makeArrayExtensional :: Env -> [Exp] -> VType
@@ -95,7 +98,7 @@ evalVar env (Identifier var) =
         Just (TDouble v) -> TDouble v
         Just (TBool v) -> TBool v
         Just (TArray arr) -> TArray arr
-        Nothing ->  error "VariableNotDefined"
+        Nothing ->  exception "VariableNotDefined"
 evalVar env (ArrayLocation var i) = getArrayElement (evalVar env (Identifier v)) indexes
     where (v, indexes) = unfoldArrayIndexes env (ArrayLocation var i) 
 
@@ -106,15 +109,15 @@ safeEvalVar env var varType =
         (TDouble d, "TDouble") -> TDouble d
         (TBool b, "TBool") -> TBool b
         (TArray a, "TArray") -> TArray a
-        (_, _) ->  error "TypeMismatch"     
+        (_, _) ->  exception "TypeMismatch"     
 
 -- Get unwrapped values
 getDouble :: VType -> Double
 getDouble (TDouble d) = d
-getDouble (TBool b) = error "TypeMismatch"
+getDouble (TBool b) = exception "TypeMismatch"
 getBool :: VType -> Bool
 getBool (TBool b) = b
-getBool (TDouble d) = error "TypeMismatch"
+getBool (TDouble d) = exception "TypeMismatch"
 
 -- Evaluate arithmetic expressions
 evalAExpr :: Env -> AExp -> Maybe Double
@@ -133,6 +136,7 @@ evalBExpr env (BExpOp bl op br) = opBDict op <$> evalBExpr env bl <*> evalBExpr 
 evalBExpr env (Not b) = not <$> evalBExpr env b
 evalBExpr env (Comparison al op ar) = opCDict op <$> evalAExpr env al <*> evalAExpr env ar
 
+
 -- Evaluate an expression and applicate a function "operation" on it if return Just x
 execExpr :: Env -> Exp -> (VType -> p) -> p
 execExpr env e operation = 
@@ -140,11 +144,11 @@ execExpr env e operation =
         AExp a ->
             case evalAExpr env a of
                 Just x -> operation (TDouble x)
-                Nothing ->  error "ArithmeticError"
+                Nothing ->  exception "ArithmeticError"
         BExp b ->
             case evalBExpr env b of
                 Just x -> operation (TBool x)
-                Nothing ->  error "BooleanError"
+                Nothing ->  exception "BooleanError"
         Var v ->
             operation (evalVar env v)
         ArrIntensional n -> operation (execExpr env (AExp n) makeArrayIntensional)
@@ -155,7 +159,7 @@ arrayElementAssignment :: Env -> String -> [Double] -> VType -> Env
 arrayElementAssignment env identifier ix value = 
                 case getVarValue env identifier of
                     Just (TArray var) -> insertVar env (Evaluator.Variable identifier (setArrayElement (TArray var) ix value))
-                    _ -> error "VariableNotArrayError"
+                    _ -> exception "VariableNotArrayError"
 
 
 unfoldArrayIndexes :: Env -> Tree.Variable -> ([Char], [Double])
