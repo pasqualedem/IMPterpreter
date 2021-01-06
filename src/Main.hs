@@ -7,14 +7,6 @@ import Tree ( Program (..) )
 lineString :: [Char]
 lineString = "IMPterpreter> "
 
--- A dummy function used to force eager evaluation in Haskell
--- in order to catch errors before printing the environment
-force :: Env -> [Char]
-force [] = ""
-force (l:ls) = 
-    case l of
-        Variable name v -> "" ++ force ls
-
 menu :: Env -> String -> IO ()
 menu env "" = 
     do
@@ -65,7 +57,6 @@ execute env prog =
                 menu env input
             else do
                 let newEnv = exec env (fst parsedProg)
-                putStr (force $! newEnv) -- Force the evaluation of the environment
                 putStr lineString
                 input <- getLine 
                 menu newEnv input
