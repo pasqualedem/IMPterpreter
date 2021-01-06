@@ -1,13 +1,13 @@
-module Evaluator where
-import Tree (AExp (..), BExp (..), Command (..), ComparisonOp (..), AOp (..), BOp (..), Exp (..), Variable (..), Program (..))
-import Parser (useparse, variable)
+module IMPterpreter.Evaluator where
+import IMPterpreter.Tree (AExp (..), BExp (..), Command (..), ComparisonOp (..), AOp (..), BOp (..), Exp (..), Variable (..), Program (..))
+import IMPterpreter.Parser (useparse, variable)
 
 data Variable = Variable {
     name :: String,
     value :: VType
 } deriving Show
 
-type Env = [Evaluator.Variable]
+type Env = [IMPterpreter.Evaluator.Variable]
 
 data VType = TDouble Double | TBool Bool | TArray [VType]
 
@@ -49,7 +49,7 @@ getVarValue (x:xs) qName =
     else getVarValue xs qName
 
 -- insert or update a new variable  
-insertVar :: Env -> Evaluator.Variable -> Env
+insertVar :: Env -> IMPterpreter.Evaluator.Variable -> Env
 insertVar [] var  = [var] 
 insertVar (x:xs) newVar =
     if name x == name newVar
@@ -92,7 +92,7 @@ makeArrayIntensional (TDouble d)
         where TArray t = makeArrayIntensional (TDouble (d-1))
 
 -- Get a variable from the Env and return its value
-evalVar :: Env -> Tree.Variable -> VType
+evalVar :: Env -> IMPterpreter.Tree.Variable -> VType
 evalVar env (Identifier var) = 
     case getVarValue env var of
         Just (TDouble v) -> TDouble v
@@ -103,7 +103,7 @@ evalVar env (ArrayLocation var i) = getArrayElement (evalVar env (Identifier v))
     where (v, indexes) = unfoldArrayIndexes env (ArrayLocation var i) 
 
 -- Get a variable value from the Env and check the type matching
-safeEvalVar :: Env -> Tree.Variable -> String -> VType
+safeEvalVar :: Env -> IMPterpreter.Tree.Variable -> String -> VType
 safeEvalVar env var varType = 
     case (evalVar env var, varType) of
         (TDouble d, "TDouble") -> TDouble d
@@ -122,16 +122,16 @@ getBool (TDouble d) = exception "TypeMismatch"
 -- Evaluate arithmetic expressions
 evalAExpr :: Env -> AExp -> Maybe Double
 evalAExpr _ (Number x) = Just x
-evalAExpr env (Tree.AVar (Identifier v)) = Just (getDouble (safeEvalVar env (Identifier v) "TDouble"))
-evalAExpr env (Tree.AVar (ArrayLocation v a)) = Just (getDouble (safeEvalVar env (ArrayLocation v a) "TDouble"))
+evalAExpr env (AVar (Identifier v)) = Just (getDouble (safeEvalVar env (Identifier v) "TDouble"))
+evalAExpr env (AVar (ArrayLocation v a)) = Just (getDouble (safeEvalVar env (ArrayLocation v a) "TDouble"))
 evalAExpr env (AExpOp al op ar) = opADict op <$> evalAExpr env al <*> evalAExpr env ar
 evalAExpr env (Negation a) = (-) <$> Just 0 <*> evalAExpr env a
 
 -- Evaluate boolean expressions
 evalBExpr :: Env -> BExp -> Maybe Bool
 evalBExpr _ (Boolean b) = Just b
-evalBExpr env (Tree.BVar (Identifier v)) = Just (getBool (safeEvalVar env (Identifier v) "TBool"))
-evalBExpr env (Tree.BVar (ArrayLocation v a)) = Just (getBool (safeEvalVar env (ArrayLocation v a) "TBool"))
+evalBExpr env (BVar (Identifier v)) = Just (getBool (safeEvalVar env (Identifier v) "TBool"))
+evalBExpr env (BVar (ArrayLocation v a)) = Just (getBool (safeEvalVar env (ArrayLocation v a) "TBool"))
 evalBExpr env (BExpOp bl op br) = opBDict op <$> evalBExpr env bl <*> evalBExpr env br
 evalBExpr env (Not b) = not <$> evalBExpr env b
 evalBExpr env (Comparison al op ar) = opCDict op <$> evalAExpr env al <*> evalAExpr env ar
@@ -158,11 +158,11 @@ execExpr env e operation =
 arrayElementAssignment :: Env -> String -> [Double] -> VType -> Env
 arrayElementAssignment env identifier ix value = 
                 case getVarValue env identifier of
-                    Just (TArray var) -> insertVar env (Evaluator.Variable identifier (setArrayElement (TArray var) ix value))
+                    Just (TArray var) -> insertVar env (IMPterpreter.Evaluator.Variable identifier (setArrayElement (TArray var) ix value))
                     _ -> exception "VariableNotArrayError"
 
 
-unfoldArrayIndexes :: Env -> Tree.Variable -> ([Char], [Double])
+unfoldArrayIndexes :: Env -> IMPterpreter.Tree.Variable -> ([Char], [Double])
 unfoldArrayIndexes env (ArrayLocation (Identifier id) j) = (id, execExpr env (AExp j) (\x -> [getDouble x]))
 unfoldArrayIndexes env (ArrayLocation var j)  = (id, execExpr env (AExp j) (\x -> getDouble x:l))
     where (id, l) = unfoldArrayIndexes env var
@@ -170,7 +170,7 @@ unfoldArrayIndexes env (ArrayLocation var j)  = (id, execExpr env (AExp j) (\x -
 -- Execute a statement of the program and apply its effects to the enviroment
 execStatement :: Env -> Command -> Env
 execStatement env Skip = env
-execStatement env (Assignment (Identifier v) e) =  execExpr env e (insertVar env . Evaluator.Variable v)
+execStatement env (Assignment (Identifier v) e) =  execExpr env e (insertVar env . IMPterpreter.Evaluator.Variable v)
 execStatement env (Assignment (ArrayLocation var i) e) = execExpr env e (arrayElementAssignment env id idx)
     where (id, idx) = unfoldArrayIndexes env (ArrayLocation var i)
 

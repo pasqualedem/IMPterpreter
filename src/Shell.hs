@@ -1,8 +1,8 @@
-module Main where
+module Shell where
 
-import Parser ( parse, isParseFailed )
-import Evaluator
-import Tree ( Program (..) ) 
+import IMPterpreter.Parser ( parse, isParseFailed )
+import IMPterpreter.Evaluator ( Env, getVarValue, showEnv, exec )
+import IMPterpreter.Tree ( Program (..) ) 
 
 lineString :: [Char]
 lineString = "IMPterpreter> "
@@ -61,6 +61,7 @@ execute env prog =
                 input <- getLine 
                 menu newEnv input
         
+help :: IO ()
 help = 
     do
         putStrLn "':l filename' loads and executes instructions from file"
@@ -69,8 +70,8 @@ help =
         putStrLn "':cl' clears the enviroment"
         putStrLn "':q' quits\n"
 
-main :: IO ()
-main =
+shell :: IO ()
+shell =
     do
         putStrLn "-------------------------------------------------------------------------------------------------"
         putStrLn " ██ ███    ███ ██████  ████████ ███████ ██████  ██████  ██████  ███████ ████████ ███████ ██████  "
@@ -82,3 +83,6 @@ main =
         putStrLn "Type the instructions to be executedor use ':l filename' to load from file."
         putStrLn "Use ':h' to show all commands."
         menu [] ""
+
+main :: IO ()
+main = shell

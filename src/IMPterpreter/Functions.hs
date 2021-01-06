@@ -1,4 +1,4 @@
-module Functions where
+module IMPterpreter.Functions where
 
 isLower :: Char -> Bool
 isLower c = c `elem` ['a'..'z']

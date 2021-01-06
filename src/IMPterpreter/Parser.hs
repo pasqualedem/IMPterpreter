@@ -1,6 +1,6 @@
-module Parser where
-import Tree (AExp (..), BExp (..), Command (..), ComparisonOp (..), AOp (..), BOp (..), Exp (..), Variable (..), Program (..))
-import Functions
+module IMPterpreter.Parser where
+import IMPterpreter.Tree (AExp (..), BExp (..), Command (..), ComparisonOp (..), AOp (..), BOp (..), Exp (..), Variable (..), Program (..))
+import IMPterpreter.Functions
     ( isSpace, isAlphaNum, isAlpha, isUpper, isLower, isDigit, isIdentifier)
 
 

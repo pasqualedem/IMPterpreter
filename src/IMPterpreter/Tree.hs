@@ -1,4 +1,4 @@
-module Tree where
+module IMPterpreter.Tree where
 
 data Program
     = Empty

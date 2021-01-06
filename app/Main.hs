@@ -1,8 +1,4 @@
 module Main where
+import Shell
 
-import Parser
-import Interpreter
-
-main = 
-    print $ parse "b = 3;"
-
+main = shell

@@ -582,7 +582,7 @@ insertVar (x:xs) newVar =
 
 ```haskell
 -- Get a variable from the Env and return its value
-evalVar :: Env -> Tree.Variable -> VType
+evalVar :: Env -> IMPterpreter.Tree.Variable -> VType
 evalVar env (Identifier var) = 
     case getVarValue env var of
         Just (TDouble v) -> TDouble v
@@ -595,7 +595,7 @@ evalVar env (ArrayLocation var i) = getArrayElement (evalVar env (Identifier v))
 **safeEvalVar** check also that the variable is of a given VType.
 
 ```haskell
-safeEvalVar :: Env -> Tree.Variable -> String -> VType
+safeEvalVar :: Env -> IMPterpreter.Tree.Variable -> String -> VType
 safeEvalVar env var varType = 
     case (evalVar env var, varType) of
         (TDouble d, "TDouble") -> TDouble d
@@ -659,7 +659,7 @@ execExpr env e operation =
 ```haskell
 execStatement :: Env -> Command -> Env
 execStatement env Skip = env
-execStatement env (Assignment (Identifier v) e) =  execExpr env e (insertVar env . Evaluator.Variable v)
+execStatement env (Assignment (Identifier v) e) =  execExpr env e (insertVar env . IMPterpreter.Evaluator.Variable v)
 execStatement env (Assignment (ArrayLocation var i) e) = execExpr env e (arrayElementAssignment env id idx)
     where (id, idx) = unfoldArrayIndexes env (ArrayLocation var i)
 
@@ -785,30 +785,10 @@ end
 m = s / n;
 ```
 
-Matrix product
+Other examples can be found in the *examples* folder.
 
-```pascal
-M = 2;
-N = 2;
-P = 2;
-A = [[1, 2], [3, 4]];
-B = [[6, 4], [3, 1]];
-C = [[0, 0], [0, 0]];
-
-i = 0;
-j = 0;
-k = 0;
-while i < M do
-    j = 0;
-    while j < P do
-        k = 0;
-        while k < N do
-            C[i][j] = C[i][j] + A[i][k] * B[k][j];
-            k = k + 1;
-        end
-        j = j + 1;
-    end
-    i = i + 1;
-end
+```
+:l ../examples/matrixProd.imp
+:env
 ```
 
