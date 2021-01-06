@@ -9,7 +9,7 @@ data Variable = Variable {
 
 type Env = [Evaluator.Variable]
 
-data VType = TDouble Double | TBool !Bool | TArray [VType]
+data VType = TDouble Double | TBool Bool | TArray [VType]
 
 instance Show VType where
     show (TDouble d) = show d

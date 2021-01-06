@@ -8,14 +8,11 @@ C = [[0, 0], [0, 0]];
 i = 0;
 j = 0;
 k = 0;
-while i<M
-    do
-    j=0;
-    while j<P
-        do
-        k=0;
-        while k<N
-            do
+while i < M do
+    j = 0;
+    while j < P do
+        k = 0;
+        while k < N do
             C[i][j] = C[i][j] + A[i][k] * B[k][j];
             k = k + 1;
         end

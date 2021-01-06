@@ -319,25 +319,20 @@ bfactor =
 ```
 ```haskell
 bterm :: Parser BExp
+bterm :: Parser BExp
 bterm =
-    do
-        bf <- bfactor
-        (do
-            symbol "&&"
-            BExpOp bf And <$> bfactor) 
-            <|>
-            return bf
+    do 
+        lf <- bfactor
+        rest lf 
+    where rest lf = (do symbol "&&"; rf <- bfactor; rest (BExpOp lf Or rf)) <|> return lf
 ```
 ```haskell
 bexp :: Parser BExp
 bexp =
-    do
-        bt <- bterm
-        (do
-            symbol "||"
-            BExpOp bt Or <$> bexp) 
-            <|>
-            return bt
+    do 
+        lt <- bterm
+        rest lt 
+    where rest lt = (do symbol "||"; rt <- bterm; rest (BExpOp lt And rt)) <|> return lt
 ```
 
 #### 3.1.7 Command parsing
@@ -723,10 +718,97 @@ makeArrayExtensional env (e:ex) = execExpr env e (\x -> TArray (x:t))
 
 ## 4. Usage
 
-Load the  **Main.hs** module from an haskell shell,  and then type `main` to launch IMPterpreter.
-
-
+Load the **Main.hs** module from an haskell shell,  and then type `main` to launch IMPterpreter, this should be shown:
 
 ![image-20210103202322514](docs\imgs\main.png)
 
-Instructions can be directly typed into the shell or can be loaded from file with the `:l` command.
+Instructions can be directly typed into the shell or can be loaded from file with the **:l** command. All commands available are:
+
+- **:l filename** loads and executes instructions contained in the given file 
+- **:env** prints all the variables in the environment
+- **:p v** search the variable "v" in the environment: if is found prints *Just* its value, otherwise prints *Nothing*
+- **:cl**  empties the environment
+- **:q** quits from the interactive shell
+
+### 4.1 Code examples
+
+Assigning variables
+
+```pascal
+x = 6.7;
+y = False;
+v = [1, False, 4.5];
+```
+
+Using selection and loop
+
+```pascal
+b = True;
+if b then
+	x = 1;
+else
+	x = -1;
+end
+```
+
+```pascal
+n = 0;
+i = 0;
+while i<n do
+	i = i + 1;
+end
+```
+
+Factorial of 6
+
+```pascal
+f = 1;
+n = 6;
+i = 1;
+while i < n + 1 do
+    f = f * i;
+    i = i + 1;
+end
+```
+
+Average value of an array
+
+```pascal
+v = [2, 3, 6, 2, 3, 4];
+n = 6;
+i = 0;
+s = 0;
+while  i < n do
+    s = s + v[i];
+    i = i + 1;
+end
+m = s / n;
+```
+
+Matrix product
+
+```pascal
+M = 2;
+N = 2;
+P = 2;
+A = [[1, 2], [3, 4]];
+B = [[6, 4], [3, 1]];
+C = [[0, 0], [0, 0]];
+
+i = 0;
+j = 0;
+k = 0;
+while i < M do
+    j = 0;
+    while j < P do
+        k = 0;
+        while k < N do
+            C[i][j] = C[i][j] + A[i][k] * B[k][j];
+            k = k + 1;
+        end
+        j = j + 1;
+    end
+    i = i + 1;
+end
+```
+

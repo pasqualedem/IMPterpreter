@@ -1,7 +1,7 @@
 module Main where
 
 import Parser ( parse, isParseFailed )
-import Evaluator ( Env, exec, Env, showEnv )
+import Evaluator
 import Tree ( Program (..) ) 
 
 lineString :: [Char]
@@ -9,8 +9,11 @@ lineString = "IMPterpreter> "
 
 -- A dummy function used to force eager evaluation in Haskell
 -- in order to catch errors before printing the environment
-force :: p -> [Char]
-force env = ""
+force :: Env -> [Char]
+force [] = ""
+force (l:ls) = 
+    case l of
+        Variable name v -> "" ++ force ls
 
 menu :: Env -> String -> IO ()
 menu env "" = 
@@ -32,6 +35,16 @@ menu env (':':('e':('n':('v':other)))) =
 menu env (':':('c':('l':other))) =
     do   
         execute [] ""
+
+menu env (':':('p':(' ':var)))=
+    do
+        print (getVarValue env var)
+        execute env ""
+
+menu env (':':('h':other))=
+    do
+        help
+        execute env ""
 
 menu env (':':('q':other)) =
     do
@@ -57,6 +70,14 @@ execute env prog =
                 input <- getLine 
                 menu newEnv input
         
+help = 
+    do
+        putStrLn "':l filename' loads and executes instructions from file"
+        putStrLn "':env' shows the enviroment"
+        putStrLn "':p v' shows the value of variable with name 'v'"
+        putStrLn "':cl' clears the enviroment"
+        putStrLn "':q' quits\n"
+
 main :: IO ()
 main =
     do
@@ -67,10 +88,6 @@ main =
         putStrLn " ██ ██  ██  ██ ██         ██    ██      ██   ██ ██      ██   ██ ██         ██    ██      ██   ██ "
         putStrLn " ██ ██      ██ ██         ██    ███████ ██   ██ ██      ██   ██ ███████    ██    ███████ ██   ██ "
         putStrLn "-------------------------------------- Pasquale De Marinis --------------------------------------\n"    
-        putStrLn "Type the instructions to be executed"
-        putStrLn "Type ':l filename' to load and execute instructions from file"
-        putStrLn "Type ':env' to show the enviroment"
-        putStrLn "Type ':cl' to clear the enviroment"
-        putStrLn "Type ':q' to quit\n"
+        putStrLn "Type the instructions to be executedor use ':l filename' to load from file."
+        putStrLn "Use ':h' to show all commands."
         menu [] ""
-        

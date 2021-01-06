@@ -2,7 +2,7 @@ n=10000;
 m=10000;
 i=0;
 j=0;
-
+x = drt;
 
 while i<n
 do

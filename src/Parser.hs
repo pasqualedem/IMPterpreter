@@ -204,18 +204,18 @@ afactor =
     <|> 
     (do
         symbol "-"
-        Negation <$> aexp
+        symbol "("
+        a <- aexp
+        symbol ")"
+        return (Negation a)
     )
 
 aterm :: Parser AExp
 aterm = 
-    do
-        f <- afactor
-        do
-            op <- asecondaryop
-            AExpOp f op <$> aterm
-            <|>
-            return f
+    do 
+        lf <- afactor
+        rest lf 
+    where rest lf = (do op <- asecondaryop; rf <- afactor; rest (AExpOp lf op rf)) <|> return lf
 
 aprimaryop :: Parser AOp
 aprimaryop =
@@ -227,15 +227,22 @@ asecondaryop =
     (do op <- symbol "*"; return Mul) <|>
     (do op <- symbol "/"; return Div)
 
+-- aexp :: Parser AExp
+-- aexp = 
+--     do 
+--         t <- aterm
+--         do
+--             op <- aprimaryop
+--             AExpOp t op <$> aexp
+--             <|>
+--             return t
+
 aexp :: Parser AExp
 aexp = 
     do 
-        t <- aterm
-        do
-            op <- aprimaryop
-            AExpOp t op <$> aexp
-            <|>
-            return t
+        lt <- aterm
+        rest lt 
+    where rest lt = (do op <- aprimaryop; rt <- aterm; rest (AExpOp lt op rt)) <|> return lt
 
 
 
@@ -306,23 +313,17 @@ bfactor =
 
 bterm :: Parser BExp
 bterm =
-    do
-        bf <- bfactor
-        (do
-            symbol "&&"
-            BExpOp bf And <$> bfactor) 
-            <|>
-            return bf
+    do 
+        lf <- bfactor
+        rest lf 
+    where rest lf = (do symbol "&&"; rf <- bfactor; rest (BExpOp lf Or rf)) <|> return lf
 
 bexp :: Parser BExp
 bexp =
-    do
-        bt <- bterm
-        (do
-            symbol "||"
-            BExpOp bt Or <$> bexp) 
-            <|>
-            return bt
+    do 
+        lt <- bterm
+        rest lt 
+    where rest lt = (do symbol "||"; rt <- bterm; rest (BExpOp lt And rt)) <|> return lt
 
 
 ------ Command expression parsing ------

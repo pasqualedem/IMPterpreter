@@ -1,10 +1,9 @@
-v = {2, 3, 6, 2, 3, 4};
+v = [2, 3, 6, 2, 3, 4];
 n = 6;
 i = 0;
-s=0;
-while i<n
-    do
-        s=s+v[i];
-        i=i+1;
-    end
-m=s/n;
+s = 0;
+while  i < n do
+    s = s + v[i];
+    i = i + 1;
+end
+m = s / n;
