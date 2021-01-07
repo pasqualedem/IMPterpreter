@@ -12,7 +12,6 @@ isSpace c = c `elem` ['\n', '\t', '\r', ' ']
 isAlpha :: Char -> Bool
 isAlpha c = isUpper c || isLower c
 
-
 isDigit :: Char -> Bool
 isDigit c = c `elem` ['0' .. '9']
 

@@ -22,26 +22,24 @@ Program := <Command> | <Command> <Program>
 Command ::= <Skip> | <ArrayDeclaration> | <Assignment> | <IfThenElse> | <While> 
 Skip ::= "skip" <Semicolon> 
 Assignment ::= <Variable> ":=" <Exp> <Semicolon>
-IfThenElse ::= "if" <Space> <bexp> <Space> "then" <Space> (<Program> | <Program> "else" <Space> <Program>) "end" <Semicolon>
-While ::= "while" <space> <BExp> <Space> "do" <Space> <Program> "end" <Semicolon> 
+IfThenElse ::= "if" <S> <BExp> <S> "then" <S> (<Program> | <Program> "else" <S> <Program>) "end" <Semicolon>
+While ::= "while" <S> <BExp> <S> "do" <S> <Program> <S> "end" <Semicolon> 
 Exp ::= AExp | BExp | ( "Array" "(" <AExp> ")" | "[" <Exp> ["," <Exp> ]* "]"  )
 
-BExp ::= <BTerm> | <BTerm> "||" <BExp>
-BTerm ::= <BFact> | <BTerm> "&&" <BFact>
+BExp ::= <BTerm> ["||" <BTerm>]*
+BTerm ::= <Fact> ["&&" <BFact>]*
 BFact ::= <AExp> <ComparisonOp> <AExp> | <Bool> | <Variable> | "!" <BExp> | "(" <bexp> ")"
 
-AExp ::= <ATerm> | <ATerm> "+" <AExp> | <ATerm> "-" <AExp>
-ATerm = <AFactor> | <AFactor> "*" <ATerm> | <AFactor> "/" <ATerm>
+AExp ::= <ATerm> [{"+" | "-"} <ATerm>]*
+ATerm = <AFactor> [{"*" | "/"} <AFactor>]*
 AFactor = <PositiveNumber> | <Variable> | "(" <AExp> ")" | "-" <AExp>
-PositiveNumber ::= <Digit> <PositiveNumber> | <PositiveNumber> "." <PositiveNumber> | <Digit>
-Digit ::= [0-9]
+PositiveNumber ::= [0-9]+ | [0-9]+ "." [0-9]+
 
-Identifier ::= [<Letter>]{<Letter> | <Letter>}
+Identifier ::= [a-zA-z]+ \ Keyword
 Variable ::= Identifier "[" AExp "]"
 ComparisonOp ::= "<" | ">" | "=" | "<=" | ">=" | "!=" 
-Letter ::= [a-z]
-Semicolon ::= ";" | ";" <space> 
-Space ::= " "  
+Semicolon ::= ";" | ";" <S>
+S ::= " "  
 ```
 
 In this language there are no declarations, or we can say that declarations coincides with the assignments, so we have **dynamic typing**.

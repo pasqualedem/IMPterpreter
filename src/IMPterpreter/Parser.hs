@@ -131,7 +131,6 @@ token p =
         space;
         return v;
 
-
 ------ Arithmetic expression parsing ------
 
 nat :: Parser Double
@@ -159,7 +158,6 @@ number =
         num <- number
         return (- num)
     )
-
 
 identifier ::  Parser Variable
 identifier =
@@ -204,10 +202,7 @@ afactor =
     <|> 
     (do
         symbol "-"
-        symbol "("
-        a <- aexp
-        symbol ")"
-        return (Negation a)
+        Negation <$> aexp
     )
 
 aterm :: Parser AExp
@@ -226,16 +221,6 @@ asecondaryop :: Parser AOp
 asecondaryop =
     (do op <- symbol "*"; return Mul) <|>
     (do op <- symbol "/"; return Div)
-
--- aexp :: Parser AExp
--- aexp = 
---     do 
---         t <- aterm
---         do
---             op <- aprimaryop
---             AExpOp t op <$> aexp
---             <|>
---             return t
 
 aexp :: Parser AExp
 aexp = 

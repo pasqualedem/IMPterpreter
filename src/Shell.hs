@@ -1,11 +1,12 @@
 module Shell where
 
-import IMPterpreter.Parser ( parse, isParseFailed )
+import IMPterpreter.Parser ( isParseFailed, parse )
 import IMPterpreter.Evaluator ( Env, getVarValue, showEnv, exec )
-import IMPterpreter.Tree ( Program (..) ) 
+import IMPterpreter.Tree ()
 
 lineString :: [Char]
 lineString = "IMPterpreter> "
+
 
 menu :: Env -> String -> IO ()
 menu env "" = 
@@ -29,8 +30,10 @@ menu env (':':('c':('l':other))) =
         execute [] ""
 
 menu env (':':('p':(' ':var)))=
-    do
-        print (getVarValue env var)
+    do  
+        case getVarValue env var of
+            Left v -> print v
+            Right err -> print err
         execute env ""
 
 menu env (':':('h':other))=
@@ -57,9 +60,19 @@ execute env prog =
                 menu env input
             else do
                 let newEnv = exec env (fst parsedProg)
-                putStr lineString
-                input <- getLine 
-                menu newEnv input
+                case newEnv of
+                    Left okEnv -> 
+                        do
+                            putStr lineString
+                            input <- getLine 
+                            menu okEnv input
+                    Right err ->
+                        do
+                            putStr (show err ++ "\n") 
+                            putStr lineString
+                            input <- getLine 
+                            menu env input
+
         
 help :: IO ()
 help = 
@@ -80,7 +93,7 @@ shell =
         putStrLn " ██ ██  ██  ██ ██         ██    ██      ██   ██ ██      ██   ██ ██         ██    ██      ██   ██ "
         putStrLn " ██ ██      ██ ██         ██    ███████ ██   ██ ██      ██   ██ ███████    ██    ███████ ██   ██ "
         putStrLn "-------------------------------------- Pasquale De Marinis --------------------------------------\n"    
-        putStrLn "Type the instructions to be executedor use ':l filename' to load from file."
+        putStrLn "Type the instructions to be executed or use ':l filename' to load from file."
         putStrLn "Use ':h' to show all commands."
         menu [] ""
 
