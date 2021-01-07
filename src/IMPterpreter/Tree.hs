@@ -1,10 +1,6 @@
 module IMPterpreter.Tree where
 
-data Program
-    = Empty
-    | Single Command
-    | Sequence Command Program
-    deriving (Show, Eq)
+type Program = [Command]
 
 data Command
     = Skip

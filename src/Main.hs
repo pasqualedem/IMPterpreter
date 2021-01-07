@@ -1,4 +1,4 @@
-module Shell where
+module Main where
 
 import IMPterpreter.Parser ( isParseFailed, parse )
 import IMPterpreter.Evaluator ( Env, getVarValue, showEnv, exec )
@@ -81,6 +81,7 @@ help =
         putStrLn "':env' shows the enviroment"
         putStrLn "':p v' shows the value of variable with name 'v'"
         putStrLn "':cl' clears the enviroment"
+        putStrLn "':h' shows this message"
         putStrLn "':q' quits\n"
 
 shell :: IO ()

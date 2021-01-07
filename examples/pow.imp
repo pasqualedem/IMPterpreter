@@ -8,5 +8,3 @@ while i < e do
     p = p * b;
     i = i + 1;
 end
-
-

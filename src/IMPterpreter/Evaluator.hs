@@ -81,29 +81,24 @@ setArrayElement (TArray l) (i:is) v =
     where (f, a:as) = splitAt (floor i) l 
 setArrayElement _ i _ = Right (DimensionOutOfBounds (floor <$> i))
 
-
--- setArrayElement :: VType -> [Double] -> VType -> VType
--- setArrayElement (TArray []) _ v =  exception "IndexOutOfRange"
--- setArrayElement (TArray l) [i] v = TArray (f ++ v:as)
---     where (f, a:as) = splitAt (floor i) l 
--- setArrayElement (TArray l) (i:is) v = TArray (f ++ setArrayElement a is v:as)
---     where (f, a:as) = splitAt (floor i) l 
-
-safeArrayAccess :: [a] -> Int -> Either a Exception
-safeArrayAccess l i = 
+-- Get an element of the list, if the index is correct, otherwise returns an exception
+safeListAccess :: [a] -> Int -> Either a Exception
+safeListAccess l i = 
     if length l > i && i >= 0 then Left (l !! i) else Right (IndexOutOfBounds [i])
 
 -- Get an element of an array given an index
 getArrayElement :: VType -> [Double] -> Either VType Exception 
-getArrayElement (TArray l) [i] = safeArrayAccess l (floor i)
+getArrayElement (TArray l) [i] = safeListAccess l (floor i)
 getArrayElement (TArray l) (i:is) = getArrayElement (l !! floor i) is
 getArrayElement _ idx  = Right (DimensionOutOfBounds (floor <$> idx))
 
 -- Construct an array given the list of expression
 makeArrayExtensional :: Env -> [Exp] -> Either VType Exception
 makeArrayExtensional env [exp] = execExpr env exp (\x -> Left (TArray [x]))
-makeArrayExtensional env (e:ex) = execExpr env e (\x -> Left (TArray (x:t)))
-    where Left (TArray t) = makeArrayExtensional env ex
+makeArrayExtensional env (e:ex) = 
+    case makeArrayExtensional env ex of
+        Left (TArray t) -> execExpr env e (\x -> Left (TArray (x:t)))
+        Right s -> Right s
 
 -- Construct an array given the number of elements
 makeArrayIntensional :: VType -> VType
@@ -234,17 +229,16 @@ execStatement env (While b p) = execExpr env (BExp b)
         case getBool (Left bvalue) of
             Left True -> 
                 case exec env p of
-                    Left e -> exec e (Single (While b p))
+                    Left e -> exec e [While b p]
                     Right s -> Right s
             Left False -> Left env
             Right s -> Right s
     )
 
--- -- Execute a program
+-- Execute a program
 exec :: Env -> Program -> Either Env Exception 
-exec env (Single c) = execStatement env c
-exec env (Sequence c p) =
+exec env (c:p) =
     case execStatement env c of
         Left e -> exec e p
         Right s -> Right s
-exec env Empty = Left env
+exec env [] = Left env

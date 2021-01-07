@@ -8,7 +8,7 @@ newtype Parser a = P (String -> Maybe (a, String))
 
 parse :: String -> (Program, String)
 parse s = case p s of
-  Nothing -> (Empty, s)
+  Nothing -> ([], s)
   Just (c, s) -> (c, s)
   where
     (P p) = program
@@ -318,9 +318,10 @@ program =
     do 
         c <- command
         do
-            Sequence c <$> program
+            p <- program
+            return (c:p)
             <|>
-            return (Single c) 
+            return [c]
 
 command :: Parser Command
 command =
@@ -433,7 +434,7 @@ ifthenelse =
             return (IfThenElse b pthen pelse)
             <|> do
                 symbol "end"
-                return (IfThenElse b pthen (Single Skip))
+                return (IfThenElse b pthen [Skip])
     
 while :: Parser Command
 while = 
