@@ -853,7 +853,7 @@ makeArrayExtensional env (e:ex) =
 <div style="page-break-after: always;"></div>
 ## 4. Usage
 
-Load the **Main.hs** module from an haskell shell,  and then type `main` to launch IMPterpreter, this should be shown:
+Load the **Main.hs** module from the ghci shell, and then type `main` to launch IMPterpreter, this should be shown:
 
 ![image-20210103202322514](imgs\main.png)
 

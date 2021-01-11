@@ -1,7 +1,7 @@
 module IMPterpreter.Evaluator where
-import IMPterpreter.Tree (AExp (..), BExp (..), Command (..), ComparisonOp (..), AOp (..), BOp (..), Exp (..), Variable (..), Program (..))
-import IMPterpreter.Parser (variable)
-import IMPterpreter.Exception (Exception (..))
+import IMPterpreter.Tree ( AExp (..), BExp (..), Command (..), ComparisonOp (..), AOp (..), BOp (..), Exp (..), Variable (..), Program (..) )
+import IMPterpreter.Parser ( variable )
+import IMPterpreter.Exception ( Exception (..) )
 
 data Variable = Variable {
     name :: String,

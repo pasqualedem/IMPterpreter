@@ -1,7 +1,7 @@
 module IMPterpreter.Parser where
-import IMPterpreter.Tree (AExp (..), BExp (..), Command (..), ComparisonOp (..), AOp (..), BOp (..), Exp (..), Variable (..), Program (..))
+import IMPterpreter.Tree ( AExp (..), BExp (..), Command (..), ComparisonOp (..), AOp (..), BOp (..), Exp (..), Variable (..), Program (..) )
 import IMPterpreter.Functions
-    ( isSpace, isAlphaNum, isAlpha, isUpper, isLower, isDigit, isIdentifier)
+    ( isSpace, isAlphaNum, isAlpha, isUpper, isLower, isDigit, isIdentifier )
 
 
 newtype Parser a = P (String -> Maybe (a, String))

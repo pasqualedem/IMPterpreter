@@ -2,7 +2,6 @@ module Main where
 
 import IMPterpreter.Parser ( isParseFailed, parse )
 import IMPterpreter.Evaluator ( Env, getVarValue, showEnv, exec )
-import IMPterpreter.Tree ()
 
 lineString :: [Char]
 lineString = "IMPterpreter> "
@@ -22,7 +21,7 @@ menu env (':':('l':(' ':file))) =
 
 menu env (':':('e':('n':('v':other)))) =
     do   
-        putStrLn ("\nEnviroment:\n" ++ showEnv env)   
+        putStrLn ("\nEnvironment:\n" ++ showEnv env)   
         execute env ""
 
 menu env (':':('c':('l':other))) =
