@@ -20,7 +20,7 @@ IMPterpreter uses an eager evaluation (call-by-value), so in functions calls lik
 
 Load the **Main.hs** module from an haskell shell,  and then type `main` to launch IMPterpreter, this should be shown:
 
-![image-20210103202322514](docs\imgs\main.png)
+![image-20210103202322514](docs/imgs/main.png)
 
 Instructions can be directly typed into the shell or can be loaded from file with the **:l** command. All commands available are:
 
