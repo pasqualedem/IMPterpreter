@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2831a4711cb26082f539755b2f45856e76b3d148d2bbb1c9b742ce9a3fb6ed96
+-- hash: 38424f993fc36aa2ce9466e0b92d5ac84896f9d30e4c870898faada2e3910aba
 
 name:           IMPterpreter
 version:        0.1.0.0
@@ -32,7 +32,7 @@ library
       IMPterpreter.Functions
       IMPterpreter.Parser
       IMPterpreter.Tree
-      Main
+      Shell
   other-modules:
       Paths_IMPterpreter
   hs-source-dirs:

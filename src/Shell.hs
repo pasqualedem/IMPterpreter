@@ -1,4 +1,4 @@
-module Main where
+module Shell where
 
 import IMPterpreter.Parser ( isParseFailed, parse )
 import IMPterpreter.Evaluator ( Env, getVarValue, showEnv, exec )
@@ -96,6 +96,3 @@ shell =
         putStrLn "Type the instructions to be executed or use ':l filename' to load from file."
         putStrLn "Use ':h' to show all commands."
         menu [] ""
-
-main :: IO ()
-main = shell

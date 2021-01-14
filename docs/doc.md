@@ -28,7 +28,7 @@ W.t.r. to the original grammar of IMP, it has been modified to allow the represe
 Program := [<Command>]*
 Command ::= <Skip> | <Assignment> | <IfThenElse> | <While> 
 Skip ::= "skip" <Semicolon> 
-Assignment ::= <Variable> ":=" <Exp> <Semicolon>
+Assignment ::= <Variable> "=" <Exp> <Semicolon>
 IfThenElse ::= "if" <S> <BExp> <S> "then" <S> (<Program> | <Program> "else" <S> <Program>) "end" <Semicolon>
 While ::= "while" <S> <BExp> <S> "do" <S> <Program> <S> "end" <Semicolon> 
 Exp ::= AExp | BExp | "array" "(" <AExp> ")" | "[" <Exp> ["," <Exp> ]* "]"
