@@ -1,14 +1,4 @@
 .stack-work/
 .vscode/
-.app/
-.test/
 *~
 *.exe
-ChangeLog.md
-hie.yaml
-IMPterpreter.cabal
-LICENSE
-package.yaml
-Setup.hs
-stack.yaml
-stack.yaml.lock
