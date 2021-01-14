@@ -1,7 +1,6 @@
 # IMPterpreter
 
-
-
+Didactic interpreter made for *Formal Methods for Computer Science*
 
 ## Introduction
 
